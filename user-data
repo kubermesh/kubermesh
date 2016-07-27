@@ -1,0 +1,59 @@
+#cloud-config
+ssh_authorized_keys:
+ - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC66kCdo044bDM3ky+lurUJWIW/Hf1zRVngzYx8CdN2g1zyiSP9YrXLPyKdb8mewDktp/twod0dB06bwhXPtwY6iz5EAFEeUVJN/UqUqsmA0r73ewv0RS0lemL00mVSVXG3MjSxeafV7gOO3dFuq8w9M9vUyzj0MukldYMpnaBe5p1i2XXaQ6TkHMrLx11ZsbGMrcq0PXDAB+ohIM5oaLj2mlMQu8A5s5Vc5Ejd/mKZs41Z3Dt84AU51Fb0e1mH/9lPho1Z0oPPzSjJh/TSoKoJHWR3yvokvnqULs4mqPT895wXq1uBFSplkL+vK0qiW8IYQTZl1DIefyUWKqvlFNRJ
+hostname: %HOSTNAME%
+coreos:
+  units:
+    - name: etcd2.service
+      command: start
+    - name:  systemd-networkd.service
+      command: restart
+    - name: flanneld.service
+      drop-ins:
+        - name: 50-network-config.conf
+          content: |
+            [Service]
+            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
+      command: start
+    - name: kubelet.service
+      enable: true
+      command: start
+      content: |
+        [Service]
+        EnvironmentFile=/etc/environment
+        Environment=KUBELET_ACI=quay.io/coreos/hyperkube
+        Environment=KUBELET_VERSION=v1.3.0-beta.2_coreos.0
+        ExecStartPre=/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=/bin/mkdir -p /srv/kubernetes/manifests
+        ExecStartPre=/bin/mkdir -p /etc/kubernetes/checkpoint-secrets
+        ExecStart=/usr/lib/coreos/kubelet-wrapper \
+          --api-servers=https://127.0.0.1:443 \
+          --kubeconfig=/etc/kubernetes/kubeconfig \
+          --lock-file=/var/run/lock/kubelet.lock \
+          --exit-on-lock-contention \
+          --config=/etc/kubernetes/manifests \
+          --allow-privileged \
+          --hostname-override=127.0.0.1 \
+          --node-labels=master=true \
+          --minimum-container-ttl-duration=3m0s \
+          --cluster_dns=10.3.0.10 \
+          --cluster_domain=cluster.local
+        Restart=always
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
+  etcd2:
+    advertise-client-urls: http://%HOSTNAME%:2379
+    initial-advertise-peer-urls: http://%HOSTNAME%:2380
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    listen-peer-urls: http://0.0.0.0:2380
+    discovery: %DISCOVERY%
+  fleet:
+    public-ip: %HOSTNAME%
+
+write_files:
+  - path: "/etc/kubernetes/kubeconfig"
+    permissions: "0644"
+    owner: core
+    content: |
