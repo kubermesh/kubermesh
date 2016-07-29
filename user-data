@@ -8,13 +8,46 @@ coreos:
       command: start
     - name:  systemd-networkd.service
       command: restart
-    - name: flanneld.service
+    - name: dummy0.netdev
+      content: |
+        [NetDev]
+        Name=dummy0
+        Kind=dummy
+    - name: ip-allocator.service
+      enable: true
+      command: start
+      content: |
+        [Unit]
+        Requires=early-docker.service
+        After=early-docker.service
+        Before=early-docker.target
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        Environment=DOCKER_HOST=unix:///var/run/early-docker.sock
+        ExecStart=/usr/bin/docker run \
+          --net=host \
+          --volume=/etc/systemd/network:/target/units \
+          --volume=/run:/target/opts \
+          kubermesh/ip-allocator:latest 2001:db8::/71
+        ExecStart=/usr/bin/systemctl restart systemd-networkd
+
+        [Install]
+        RequiredBy=docker.service
+#    - name: flanneld.service
+#      drop-ins:
+#        - name: 50-network-config.conf
+#          content: |
+#            [Service]
+#            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
+#      command: start
+    - name: docker.service
       drop-ins:
         - name: 50-network-config.conf
           content: |
             [Service]
-            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
-      command: start
+            EnvironmentFile=/run/ip-allocator-docker-opts.env
     - name: kubelet.service
       enable: true
       command: start
