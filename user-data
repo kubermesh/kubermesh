@@ -8,6 +8,47 @@ coreos:
       command: start
     - name:  systemd-networkd.service
       command: restart
+    - name: dummy0.netdev
+      content: |
+        [NetDev]
+        Name=dummy0
+        Kind=dummy
+    - name: eth1.network
+      content: |
+        [Match]
+        Name=eth1
+
+        [Network]
+        DHCP=no
+    - name: eth2.network
+      content: |
+        [Match]
+        Name=eth2
+
+        [Network]
+        DHCP=no
+    - name: ip-allocator.service
+      enable: true
+      command: start
+      content: |
+        [Unit]
+        Requires=early-docker.service
+        After=early-docker.service
+        Before=early-docker.target
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        Environment=DOCKER_HOST=unix:///var/run/early-docker.sock
+        ExecStart=/usr/bin/docker run \
+          --net=host \
+          --volume=/etc/systemd/network:/target/units \
+          --volume=/run:/target/opts \
+          kubermesh/ip-allocator:latest 2001:db8::/71
+        ExecStart=/usr/bin/systemctl restart systemd-networkd
+
+        [Install]
+        RequiredBy=docker.service
     - name: flanneld.service
       drop-ins:
         - name: 50-network-config.conf
@@ -15,29 +56,38 @@ coreos:
             [Service]
             ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
       command: start
+    - name: docker.service
+      drop-ins:
+        - name: 50-network-config.conf
+          content: |
+            [Service]
+            #EnvironmentFile=/run/ip-allocator-docker-opts.env
     - name: kubelet.service
       enable: true
       command: start
       content: |
         [Service]
-        EnvironmentFile=/etc/environment
+        EnvironmentFile=-/etc/environment
+        EnvironmentFile=/run/ip-allocator-kubelet-opts.env
+        EnvironmentFile=/run/flannel/subnet.env
         Environment=KUBELET_ACI=quay.io/coreos/hyperkube
         Environment=KUBELET_VERSION=v1.3.0-beta.2_coreos.0
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /srv/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/checkpoint-secrets
-        ExecStart=/usr/lib/coreos/kubelet-wrapper \
-          --api-servers=https://127.0.0.1:443 \
+        ExecStart=/bin/bash -c '/usr/lib/coreos/kubelet-wrapper \
+          --api-servers=https://[fc4f:b597:4296:b8ca:13c8:9f17:dd30:811d]:443 \
           --kubeconfig=/etc/kubernetes/kubeconfig \
           --lock-file=/var/run/lock/kubelet.lock \
           --exit-on-lock-contention \
           --config=/etc/kubernetes/manifests \
           --allow-privileged \
-          --hostname-override=127.0.0.1 \
+          --hostname-override=$${FLANNEL_SUBNET%/*} \
           --node-labels=master=true \
           --minimum-container-ttl-duration=3m0s \
           --cluster_dns=10.3.0.10 \
-          --cluster_domain=cluster.local
+          --cluster_domain=cluster.local \
+          '
         Restart=always
         RestartSec=5
 

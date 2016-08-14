@@ -1,0 +1,29 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube-api-anycast-healthcheck
+  namespace: kubermesh
+spec:
+  template:
+    metadata:
+      labels:
+        name: kube-api-anycast-healthcheck
+    spec:
+      hostNetwork: true
+      containers:
+        - name: healthcheck
+          image: kubermesh/minimal-anycast-healthcheck
+          resources:
+            requests:
+              cpu: 0.15
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          env:
+            - name: DEVICE
+              value: dummy0
+            - name: IP
+              value: fc4f:b597:4296:b8ca:13c8:9f17:dd30:811d
+            - name: PORT
+              value: "443"
