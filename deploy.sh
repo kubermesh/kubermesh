@@ -150,5 +150,5 @@ ssh -q -o stricthostkeychecking=no core@${SEED_IP} 'docker run --net=host --rm -
 
 echo
 echo "Bootstrap complete. Access your kubernetes cluster using:"
-echo "kubectl --kubeconfig=cluster/auth/kubeconfig get nodes"
+echo "kubectl --kubeconfig=${PWD}/cluster/auth/kubeconfig get nodes"
 echo
