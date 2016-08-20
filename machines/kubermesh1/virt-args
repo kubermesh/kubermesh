@@ -1,0 +1,4 @@
+--network network=kubermesh-gateway-1
+--network network=kubermesh1-null-2
+--network network=kubermesh-1-2
+--network network=kubermesh-1-3

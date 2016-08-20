@@ -4,10 +4,6 @@ ssh_authorized_keys:
 hostname: %HOSTNAME%
 coreos:
   units:
-    - name: etcd2.service
-      command: start
-    - name:  systemd-networkd.service
-      command: restart
     - name: dummy0.netdev
       content: |
         [NetDev]
@@ -27,6 +23,13 @@ coreos:
 
         [Network]
         DHCP=no
+    - name: eth3.network
+      content: |
+        [Match]
+        Name=eth3
+
+        [Network]
+        DHCP=no
     - name: ip-allocator.service
       enable: true
       command: start
@@ -34,6 +37,8 @@ coreos:
         [Unit]
         Requires=early-docker.service
         After=early-docker.service
+        After=flanneld.service
+        Requires=flanneld.service
         Before=early-docker.target
 
         [Service]
@@ -49,13 +54,6 @@ coreos:
 
         [Install]
         RequiredBy=docker.service
-    - name: flanneld.service
-      drop-ins:
-        - name: 50-network-config.conf
-          content: |
-            [Service]
-            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
-      command: start
     - name: docker.service
       drop-ins:
         - name: 50-network-config.conf
@@ -76,7 +74,7 @@ coreos:
         ExecStartPre=/bin/mkdir -p /srv/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/checkpoint-secrets
         ExecStart=/bin/bash -c '/usr/lib/coreos/kubelet-wrapper \
-          --api-servers=https://[fc4f:b597:4296:b8ca:13c8:9f17:dd30:811d]:443 \
+          --api-servers=https://[fd65:7b9c:569:680:98eb:c508:eb8c:1b80]:443 \
           --kubeconfig=/etc/kubernetes/kubeconfig \
           --lock-file=/var/run/lock/kubelet.lock \
           --exit-on-lock-contention \
@@ -93,17 +91,3 @@ coreos:
 
         [Install]
         WantedBy=multi-user.target
-  etcd2:
-    advertise-client-urls: http://%HOSTNAME%:2379
-    initial-advertise-peer-urls: http://%HOSTNAME%:2380
-    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
-    listen-peer-urls: http://0.0.0.0:2380
-    discovery: %DISCOVERY%
-  fleet:
-    public-ip: %HOSTNAME%
-
-write_files:
-  - path: "/etc/kubernetes/kubeconfig"
-    permissions: "0644"
-    owner: core
-    content: |

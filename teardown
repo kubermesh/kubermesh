@@ -1,0 +1,4 @@
+#!/bin/bash
+
+./teardown-domain
+./teardown-net

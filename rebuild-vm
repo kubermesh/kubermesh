@@ -1,0 +1,6 @@
+#!/bin/sh -ex
+
+virsh destroy $1 || true
+rm -f libvirt/$1.qcow2
+qemu-img create -q -f qcow2 libvirt/$1.qcow2 8.5G
+virsh start $1

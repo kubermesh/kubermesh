@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec ssh -o stricthostkeychecking=no core@`cat ./.ip-file` $@
+exec ssh -A -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no core@`cat ./.ip-file` $@

@@ -1,13 +1,13 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: kube-api-anycast-healthcheck
+  name: etcd-anycast-healthcheck
   namespace: kubermesh
 spec:
   template:
     metadata:
       labels:
-        name: kube-api-anycast-healthcheck
+        name: etcd-anycast-healthcheck
     spec:
       hostNetwork: true
       containers:
@@ -24,6 +24,6 @@ spec:
             - name: DEVICE
               value: dummy0
             - name: IP
-              value: fd65:7b9c:569:680:98eb:c508:eb8c:1b80
+              value: fd65:7b9c:569:680:98eb:c508:ea6b:b0b2
             - name: PORT
-              value: "443"
+              value: "2379"
