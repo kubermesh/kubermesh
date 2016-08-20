@@ -7,6 +7,16 @@ ssh_authorized_keys:
 hostname: kubermesh-gateway
 coreos:
   units:
+    - name: eth0.network
+      content: |
+        [Match]
+        Name=eth0
+
+        [Network]
+        Address=172.30.0.2/30
+        Gateway=172.30.0.1
+        Address=2001:db8:a001::2/64
+        DNS=2001:db8:a001::1
     - name: eth1.network
       content: |
         [Match]

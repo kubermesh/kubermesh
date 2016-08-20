@@ -1,16 +1,8 @@
 <network>
   <name>kubermesh-internet</name>
   <forward mode="nat"/>
-  <ip address="172.30.0.1" netmask="255.255.255.252">
-    <dhcp>
-      <range start="172.30.0.2" end="172.30.0.2" />
-    </dhcp>
-  </ip>
-  <ip family="ipv6" address="2001:db8:a001::1" prefix="64" >
-    <dhcp>
-      <range start="2001:db8:a001::2" end="2001:db8:a001::2" />
-    </dhcp>
-  </ip>
+  <ip address="172.30.0.1" netmask="255.255.255.252"/>
+  <ip family="ipv6" address="2001:db8:a001::1" prefix="64"/>
   <route family="ipv6" address="fd65:7b9c:569:680:98eb:c508:eb8c:1b80" prefix="128" gateway="2001:db8:a001::2"/>
   <route family='ipv6' address='2001:db8::' prefix='32' gateway='2001:db8:a001::2'/>
   <route family='ipv4' address='172.30.0.0' prefix='15' gateway='172.30.0.2'/>

@@ -5,7 +5,6 @@ usage() {
 }
 
 if [ "$1" == "" ]; then
-        echo "Cluster size is empty"
         usage
         exit 1
 fi
@@ -21,7 +20,7 @@ ASSET_DIR=`pwd`/cluster
 NETWORK_DIR=`pwd`/networks
 VM_CONFIGS=`pwd`/machines
 USER_DATA_TEMPLATE=${VM_CONFIGS}/gateway/user-data
-IP_FILE=`pwd`/.ip-file
+GATEWAY_IP=2001:db8:a001::2
 CHANNEL=stable
 # systemd 227-229 is affected by https://github.com/systemd/systemd/issues/2004, we need at least v231
 # As that's not available in any coreos release, we go back to this older version
@@ -121,22 +120,16 @@ for SEQ in $(seq 1 $1); do
         virsh start ${HOSTNAME}
 done
 
-echo -n 'Waiting for gateway IP'
-while [ -z "${GATEWAY_IP}" ]; do
+echo -n 'Waiting for gateway'
+while ! ping6 -c 1 -w 1 ${GATEWAY_IP} >/dev/null 2>/dev/null; do
   sleep 1
   echo -n .
-  for ip in `virsh domifaddr kubermesh-gateway --full --interface vnet0 | grep vnet0 | awk '{print $4}' | cut -d / -f 1`; do
-    if ping6 -c 1 -w 1 ${ip} >/dev/null 2>/dev/null; then
-      GATEWAY_IP=${ip}
-    fi
-  done
 done
-echo ${GATEWAY_IP} > ${IP_FILE}
 echo
-echo "Seed node available at: $GATEWAY_IP"
+echo "Gateway available at: $GATEWAY_IP (or use ./ssh.sh)"
 
 echo 'Setting flannel network config...'
-./ssh.sh "/usr/bin/etcdctl set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }'"
+./ssh.sh -q "/usr/bin/etcdctl set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }'"
 
 echo 'Forcing initial anycast addresses up'
 ./ssh.sh -q 'sudo ip addr add fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev eth1'
