@@ -126,6 +126,11 @@ coreos:
 
         [Install]
         WantedBy=default.target
+    # Disable updating
+    - name: update-engine.service
+      command: stop
+    - name: locksmithd.service
+      command: stop
   etcd2:
     advertise-client-urls: http://172.30.0.2:2379
     initial-advertise-peer-urls: http://172.30.0.2:2380
