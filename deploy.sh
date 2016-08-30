@@ -21,10 +21,8 @@ NETWORK_DIR=`pwd`/networks
 VM_CONFIGS=`pwd`/machines
 USER_DATA_TEMPLATE=${VM_CONFIGS}/gateway/user-data
 GATEWAY_IP=2001:db8:a001::2
-CHANNEL=stable
-# systemd 227-229 is affected by https://github.com/systemd/systemd/issues/2004, we need at least v231
-# As that's not available in any coreos release, we go back to this older version
-RELEASE=1010.6.0
+CHANNEL=alpha
+RELEASE=1151.0.0
 RAM=1024
 CPUs=1
 IMG_NAME="coreos_${CHANNEL}_${RELEASE}_qemu_image.img"
