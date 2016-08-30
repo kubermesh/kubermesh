@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: flannel
+  namespace: kubermesh
+spec:
+  template:
+    metadata:
+      labels:
+        app: flannel
+    spec:
+      hostNetwork: true
+      containers:
+      - name: flannel
+        image: quay.io/coreos/flannel:v0.6.1
+        resources:
+          requests:
+            cpu: 0.15
+        args:
+        env:
+          - name: FLANNELD_ETCD_ENDPOINTS
+            value: http://[fd65:7b9c:569:680:98eb:c508:ea6b:b0b2]:2379
+          - name: IP
+            value: fd65:7b9c:569:680:98eb:c508:eb8c:1b80
+          - name: PORT
+            value: "443"
+        volumeMounts:
+        - name: run-flannel
+          mountPath: /run/flannel
+      volumes:
+      - name: run-flannel
+        hostPath:
+          path: /etc/kubernetes/flannel
