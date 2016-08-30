@@ -78,6 +78,7 @@ coreos:
           --log-queries \
           --log-dhcp \
           --interface=eth1 \
+          --bind-dynamic \
           --dhcp-range=172.30.0.10,172.30.0.14 \
           --dhcp-range=::,constructor:eth1,ra-only \
           --enable-ra \
