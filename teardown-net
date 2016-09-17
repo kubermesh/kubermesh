@@ -1,6 +1,6 @@
 #!/bin/bash
 
 for network in `virsh net-list --all --name | grep kubermesh`; do
-  virsh net-destroy $network
-  virsh net-undefine $network
+  virsh -q net-destroy $network
+  virsh -q net-undefine $network
 done

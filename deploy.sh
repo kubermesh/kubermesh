@@ -39,9 +39,9 @@ fi
 echo "Creating networks..."
 for network in `ls -1 ${NETWORK_DIR}`; do
   if ! virsh net-info ${network} >/dev/null 2>/dev/null; then
-    virsh net-define --file ${NETWORK_DIR}/${network}
-    virsh net-autostart ${network}
-    virsh net-start ${network}
+    virsh -q net-define --file ${NETWORK_DIR}/${network}
+    virsh -q net-autostart ${network}
+    virsh -q net-start ${network}
   fi
 done
 
@@ -76,7 +76,7 @@ fi
 cp $USER_DATA_TEMPLATE $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
 sed 's/^/      /' ${ASSET_DIR}/auth/kubeconfig >> $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
 
-virt-install --connect qemu:///system \
+virt-install -q --connect qemu:///system \
              --import \
              --name ${HOSTNAME} \
              --ram 512 \
@@ -101,7 +101,7 @@ for SEQ in $(seq 1 $1); do
                 qemu-img create -q -f qcow2 $LIBVIRT_PATH/$HOSTNAME.qcow2 8.5G
         fi
 
-        virt-install --connect qemu:///system \
+        virt-install -q --connect qemu:///system \
                      --name $HOSTNAME \
                      --ram $RAM \
                      --vcpus $CPUs \
@@ -114,12 +114,12 @@ for SEQ in $(seq 1 $1); do
                      --boot hd,network \
                      --print-xml > ${LIBVIRT_PATH}/${HOSTNAME}.xml
         sed -i -e 's#</os>#<bios useserial="yes" rebootTimeout="10000"/></os>#' ${LIBVIRT_PATH}/${HOSTNAME}.xml
-        virsh define ${LIBVIRT_PATH}/${HOSTNAME}.xml
-        virsh start ${HOSTNAME}
+        virsh -q define ${LIBVIRT_PATH}/${HOSTNAME}.xml
+        virsh -q start ${HOSTNAME}
 done
 
 echo -n 'Waiting for gateway'
-while ! ping6 -c 1 -w 1 ${GATEWAY_IP} >/dev/null 2>/dev/null; do
+while ! ./ssh.sh true >/dev/null 2>/dev/null; do
   sleep 1
   echo -n .
 done
@@ -127,9 +127,9 @@ echo
 echo "Gateway available at: $GATEWAY_IP (or use ./ssh.sh)"
 
 echo 'Setting flannel network config...'
-./ssh.sh -q "/usr/bin/etcdctl set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }'"
+./ssh.sh -q "/usr/bin/etcdctl set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }' >/dev/null"
 
-echo 'Forcing initial anycast addresses up'
+echo 'Forcing initial anycast addresses up...'
 ./ssh.sh -q 'sudo ip addr add fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev eth1'
 
 
