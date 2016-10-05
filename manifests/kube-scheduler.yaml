@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+  labels:
+    k8s-app: kube-scheduler
+    version: v1.4.0_coreos.2
+spec:
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-scheduler
+        version: v1.4.0_coreos.2
+    spec:
+      containers:
+      - name: kube-scheduler
+        image: quay.io/coreos/hyperkube:v1.4.0_coreos.2
+        command:
+        - ./hyperkube
+        - scheduler
+        - --leader-elect=true
