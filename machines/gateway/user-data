@@ -99,6 +99,7 @@ coreos:
         ExecStart=/usr/bin/docker run \
           --name zebra \
           --net=host \
+          --cap-add NET_ADMIN \
           -v /var/run/quagga:/var/run/quagga \
           kubermesh/quagga \
           /usr/sbin/zebra -r
