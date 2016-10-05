@@ -15,7 +15,7 @@ spec:
           image: kubermesh/minimal-anycast-healthcheck
           resources:
             requests:
-              cpu: 0.15
+              cpu: 0.01
           securityContext:
             capabilities:
               add:

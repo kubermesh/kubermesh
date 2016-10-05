@@ -15,7 +15,7 @@ spec:
         image: quay.io/coreos/flannel:v0.6.1
         resources:
           requests:
-            cpu: 0.15
+            cpu: 0.05
         args:
         env:
           - name: FLANNELD_ETCD_ENDPOINTS
