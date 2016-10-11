@@ -1,3 +1,5 @@
-#!/bin/sh
+#!/bin/bash
 
-kubectl --kubeconfig=${PWD}/cluster/auth/kubeconfig $@
+cd "${BASH_SOURCE%/*}" || exit
+
+kubectl --kubeconfig=./cluster/auth/kubeconfig $@
