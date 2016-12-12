@@ -130,7 +130,7 @@ echo 'Setting flannel network config...'
 ./ssh.sh -q "/usr/bin/etcdctl set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }' >/dev/null"
 
 echo 'Setting ip-allocator config...'
-./ssh.sh -q '/usr/bin/etcdctl set /kubermesh.github.io/ip-allocator/config/ipv4-base-network 172.30.1.0/24 >/dev/null'
+./ssh.sh -q '/usr/bin/etcdctl set /kubermesh.github.io/ip-allocator/config/ipv4-base-network 172.30.2.0/24 >/dev/null'
 ./ssh.sh -q '/usr/bin/etcdctl set /kubermesh.github.io/ip-allocator/config/ipv6-base-network 2001:db8::/71 >/dev/null'
 
 echo 'Forcing initial anycast addresses up...'
