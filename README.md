@@ -13,3 +13,7 @@ libvirt networking:
 - flannel ipv4: 172.31.0.0/16
 - custom ipv4 allocation: 172.30.2.0/24
 - custom ipv6 allocation: 2001:db8::/71
+
+
+## Local dev prerequisites
+`sudo apt-get install qemu-kvm libvirt-bin docker virtinst`
