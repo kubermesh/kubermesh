@@ -45,12 +45,11 @@ for network in `ls -1 ${NETWORK_DIR}`; do
   fi
 done
 
-if [ ! -d "cluster" ]; then
-  echo "Generating kubernetes assets..."
-  docker run --name kubermesh-bootkube quay.io/coreos/bootkube:v0.1.2 /bootkube render --asset-dir=cluster --api-servers=https://[fd65:7b9c:569:680:98eb:c508:eb8c:1b80]:443 --etcd-servers=http://[fd65:7b9c:569:680:98eb:c508:ea6b:b0b2]:2379
-  docker cp kubermesh-bootkube:cluster ${ASSET_DIR}
-  docker rm kubermesh-bootkube
-fi
+echo "Generating kubernetes assets..."
+rm -rf ${ASSET_DIR}
+docker run --name kubermesh-bootkube quay.io/coreos/bootkube:v0.1.2 /bootkube render --asset-dir=cluster --api-servers=https://[fd65:7b9c:569:680:98eb:c508:eb8c:1b80]:443 --etcd-servers=http://[fd65:7b9c:569:680:98eb:c508:ea6b:b0b2]:2379
+docker cp kubermesh-bootkube:cluster ${ASSET_DIR}
+docker rm kubermesh-bootkube
 
 echo "Copying manifests..."
 curl -s https://raw.githubusercontent.com/kubermesh/quagga/master/manifests/quagga-daemonset.yaml -o cluster/manifests/quagga-daemonset.yaml
