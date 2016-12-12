@@ -1,0 +1,42 @@
+---
+systemd:
+  units:
+    - name: installer.service
+      enable: true
+      contents: |
+        [Unit]
+        Requires=network-online.target
+        After=network-online.target
+        [Service]
+        Type=simple
+        ExecStart=/opt/installer
+        [Install]
+        WantedBy=multi-user.target
+storage:
+  files:
+    - path: /opt/installer
+      filesystem: root
+      mode: 0500
+      contents:
+        inline: |
+          #!/bin/bash -ex
+          curl -f "{{.ignition_endpoint}}?{{.request.raw_query}}&os=installed" -o ignition.json
+          curl -f "{{.kubeconfig}}" -o kubeconfig
+          FIRST_DISK=`lsblk --output NAME -e 1,7 --nodeps --noheadings | sort | head -n 1`
+          coreos-install -d /dev/${FIRST_DISK} -C {{.coreos_channel}} -V {{.coreos_version}} -i ignition.json {{if index . "baseurl"}}-b {{.baseurl}}{{end}}
+          udevadm settle
+          mount /dev/${FIRST_DISK}9 /mnt/
+          mkdir -p /mnt/etc/kubernetes/
+          cp kubeconfig /mnt/etc/kubernetes/kubeconfig
+          systemctl reboot
+
+{{ if index . "ssh_authorized_keys" }}
+passwd:
+  users:
+    - name: core
+      password_hash: "{{ .password_hash }}"
+      ssh_authorized_keys:
+        {{ range $element := .ssh_authorized_keys }}
+        - {{$element}}
+        {{end}}
+{{end}}

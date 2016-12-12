@@ -1,9 +1,9 @@
 #cloud-config
 users:
   - name: core
-    passwd: "iGyYPV5k4DAzA"
+    passwd: "PASSWORD_HASH"
 ssh_authorized_keys:
- - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC66kCdo044bDM3ky+lurUJWIW/Hf1zRVngzYx8CdN2g1zyiSP9YrXLPyKdb8mewDktp/twod0dB06bwhXPtwY6iz5EAFEeUVJN/UqUqsmA0r73ewv0RS0lemL00mVSVXG3MjSxeafV7gOO3dFuq8w9M9vUyzj0MukldYMpnaBe5p1i2XXaQ6TkHMrLx11ZsbGMrcq0PXDAB+ohIM5oaLj2mlMQu8A5s5Vc5Ejd/mKZs41Z3Dt84AU51Fb0e1mH/9lPho1Z0oPPzSjJh/TSoKoJHWR3yvokvnqULs4mqPT895wXq1uBFSplkL+vK0qiW8IYQTZl1DIefyUWKqvlFNRJ
+- SSH_PUBLIC_KEY
 hostname: kubermesh-gateway
 coreos:
   units:
@@ -38,6 +38,11 @@ coreos:
             Environment="DOCKER_OPT_BIP=--bip=172.30.1.1/24"
     - name: etcd2.service
       command: start
+    - name: bootcfg.path
+      enable: true
+      content: |
+        [Path]
+        PathExists=/home/core/bootcfg-config
     - name: bootcfg.service
       enable: true
       command: start
@@ -46,11 +51,18 @@ coreos:
         Restart=always
         ExecStartPre=-/usr/bin/docker stop bootcfg
         ExecStartPre=-/usr/bin/docker rm -f bootcfg
+        ExecStartPre=/usr/bin/docker run --rm --volume /home/core/bootcfg-coreos/1010.6.0/:/target kubermesh/coreos-images:1010.6.0 cp -r /assets/. /target/
         ExecStart=/usr/bin/docker run \
           --name bootcfg \
           --publish 30085:8085 \
           --volume /etc/kubernetes:/var/lib/bootcfg/assets/kubernetes \
-          kubermesh/bootcfg
+          --volume /home/core/bootcfg-config/groups:/var/lib/bootcfg/groups \
+          --volume /home/core/bootcfg-config/ignition:/var/lib/bootcfg/ignition \
+          --volume /home/core/bootcfg-config/profiles:/var/lib/bootcfg/profiles \
+          --volume /home/core/bootcfg-coreos:/var/lib/bootcfg/assets/coreos \
+          quay.io/coreos/bootcfg:v0.4.1 \
+          -address=0.0.0.0:8085 \
+          -log-level=debug
         ExecStop=/usr/bin/docker stop -t 2 bootcfg
         ExecStopPost=/usr/bin/docker rm -f bootcfg
 

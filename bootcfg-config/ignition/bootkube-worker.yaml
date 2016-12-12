@@ -1,0 +1,117 @@
+---
+systemd:
+  units:
+    - name: docker.service
+      enable: true
+      dropins:
+        - name: 40-no-net.conf
+          contents: |
+            [Service]
+            Environment="DOCKER_OPTS=--bridge=none --iptables=false --ip-masq=false"
+    - name: ip-allocator.service
+      enable: true
+      contents: |
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/docker run \
+          --net=host \
+          --volume=/etc/systemd/network:/target/units \
+          --volume=/etc/ip-allocator-opts:/target/opts \
+          kubermesh/ip-allocator:latest %m
+        ExecStart=/usr/bin/systemctl restart systemd-networkd
+    - name: kubelet.path
+      enable: true
+      contents: |
+        [Unit]
+        Description=Watch for kubeconfig
+        [Path]
+        PathExists=/etc/kubernetes/kubeconfig
+        [Install]
+        WantedBy=multi-user.target
+    - name: kubelet.service
+      enable: true
+      contents: |
+        [Unit]
+        After=ip-allocator.service
+        Requires=ip-allocator.service
+
+        [Service]
+        EnvironmentFile=-/etc/environment
+        EnvironmentFile=/etc/ip-allocator-opts/ip-allocator-kubelet-opts.env
+        Environment=KUBELET_ACI=quay.io/coreos/hyperkube
+        Environment=KUBELET_VERSION=v1.4.0_coreos.2
+        Environment="RKT_OPTS=--volume=resolv,kind=host,source=/etc/resolv.conf --mount volume=resolv,target=/etc/resolv.conf"
+        ExecStartPre=/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=/bin/mkdir -p /srv/kubernetes/manifests
+        ExecStartPre=/bin/mkdir -p /etc/kubernetes/checkpoint-secrets
+        ExecStart=/bin/bash -c '/usr/lib/coreos/kubelet-wrapper \
+          --api-servers=https://[fd65:7b9c:569:680:98eb:c508:eb8c:1b80]:443 \
+          --kubeconfig=/etc/kubernetes/kubeconfig \
+          --lock-file=/var/run/lock/kubelet.lock \
+          --exit-on-lock-contention \
+          --config=/etc/kubernetes/manifests \
+          --allow-privileged \
+          --hostname-override=%H \
+          --node-ip=${IPALLOC_HOST_IP} \
+          --node-labels=master=true \
+          --minimum-container-ttl-duration=3m0s \
+          --cluster_dns=10.3.0.10 \
+          --cluster_domain=cluster.local \
+          --network-plugin=cni \
+          --network-plugin-dir=/etc/kubernetes/cni/net.d \
+          '
+        Restart=always
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
+    # Disable updating
+    - name: update-engine.service
+      enable: false
+    - name: locksmithd.service
+      enable: false
+storage:
+  filesystems:
+    - name: rootfs
+      mount:
+        device: "/dev/disk/by-label/ROOT"
+        format: "ext4"
+  files:
+    - path: /etc/hostname
+      filesystem: rootfs
+      mode: 0644
+      contents:
+        inline: |
+          {{ .request.query.uuid }}
+    - path: /etc/kubernetes/empty
+      filesystem: rootfs
+      mode: 0644
+      contents:
+        inline: |
+          empty
+    - path: /etc/kubernetes/cni/net.d/10-flannel.conf
+      filesystem: rootfs
+      mode: 0644
+      contents:
+        inline: |
+          {
+            "name": "podnet",
+            "type": "flannel",
+            "subnetFile": "/etc/kubernetes/flannel/subnet.env",
+            "delegate": {
+              "ipMasq": false,
+              "isDefaultGateway": true
+            }
+          }
+
+{{ if index . "ssh_authorized_keys" }}
+passwd:
+  users:
+    - name: core
+      password_hash: "{{ .password_hash }}"
+      ssh_authorized_keys:
+        {{ range $element := .ssh_authorized_keys }}
+        - {{$element}}
+        {{end}}
+{{end}}

@@ -17,6 +17,7 @@ fi
 
 LIBVIRT_PATH=`pwd`/libvirt
 ASSET_DIR=`pwd`/cluster
+BOOTCFG_CONFIG_DIR=`pwd`/bootcfg-config
 NETWORK_DIR=`pwd`/networks
 VM_CONFIGS=`pwd`/machines
 USER_DATA_TEMPLATE=${VM_CONFIGS}/gateway/user-data
@@ -55,6 +56,16 @@ echo "Copying manifests..."
 curl -s https://raw.githubusercontent.com/kubermesh/quagga/master/manifests/quagga-daemonset.yaml -o cluster/manifests/quagga-daemonset.yaml
 cp -r manifests/* cluster/manifests/
 
+echo "Generating bootcfg manifests..."
+rm -rf ${ASSET_DIR}/bootcfg-config
+cp -r ${BOOTCFG_CONFIG_DIR} ${ASSET_DIR}/bootcfg-config
+sed -i 's#PASSWORD_HASH#iGyYPV5k4DAzA#' ${ASSET_DIR}/bootcfg-config/groups/*
+SSH_PUBLIC_KEY=`cat ~/.ssh/id_rsa.pub`
+sed -i "s#SSH_PUBLIC_KEY#${SSH_PUBLIC_KEY}#" ${ASSET_DIR}/bootcfg-config/groups/*
+kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/groups bootcfg-groups >cluster/manifests/bootcfg-groups.yaml
+kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/ignition bootcfg-ignition >cluster/manifests/bootcfg-ignition.yaml
+kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/profiles bootcfg-profiles >cluster/manifests/bootcfg-profiles.yaml
+
 if [ ! -f $LIBVIRT_PATH/$IMG_NAME ]; then
         wget https://${CHANNEL}.release.core-os.net/amd64-usr/${RELEASE}/coreos_production_qemu_image.img.bz2 -O - | bzcat > $LIBVIRT_PATH/$IMG_NAME || (rm -f $LIBVIRT_PATH/$IMG_NAME && echo "Failed to download image" && exit 1)
 fi
@@ -74,6 +85,8 @@ fi
 
 cp $USER_DATA_TEMPLATE $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
 sed 's/^/      /' ${ASSET_DIR}/auth/kubeconfig >> $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
+sed -i "s#SSH_PUBLIC_KEY#${SSH_PUBLIC_KEY}#" $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
+sed -i 's#PASSWORD_HASH#iGyYPV5k4DAzA#' $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
 
 virt-install -q --connect qemu:///system \
              --import \
@@ -125,6 +138,9 @@ done
 echo
 echo "Gateway available at: $GATEWAY_IP (or use ./ssh.sh)"
 
+echo "Copying bootcfg config to gateway..."
+scp -q -o stricthostkeychecking=no -r ${ASSET_DIR}/bootcfg-config core@[${GATEWAY_IP}]:/home/core/
+
 echo 'Setting flannel network config...'
 ./ssh.sh -q "/usr/bin/etcdctl set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }' >/dev/null"
 
@@ -151,14 +167,14 @@ done
 echo
 
 echo -n 'Waiting for kubermesh1 to be available'
-while ! ./ssh.sh 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev eth1 | grep 2001 | awk "{print \\$1}"` true'; do
+while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev eth1 | grep 2001 | awk "{print \\$1}"` true'; do
   sleep 1
   echo -n .
 done
 echo
 
 echo -n 'Waiting for kubermesh1 kubelet'
-while ! ./ssh.sh 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev eth1 | grep 2001 | awk "{print \\$1}"` rkt list | grep -q kube'; do
+while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev eth1 | grep 2001 | awk "{print \\$1}"` rkt list | grep -q kube'; do
   sleep 1
   echo -n .
 done
@@ -166,7 +182,15 @@ echo
 
 echo 'Starting bootkube...'
 scp -q -o stricthostkeychecking=no -r ${ASSET_DIR} core@[${GATEWAY_IP}]:/home/core/cluster
-./ssh.sh -q 'docker run --net=host --rm -v /home/core/cluster:/home/core/cluster --name kubermesh-bootkube quay.io/coreos/bootkube:v0.1.2 /bootkube start --asset-dir=/home/core/cluster --etcd-server=http://127.0.0.1:2379'
+./ssh.sh -q 'docker run --detach --net=host -v /home/core/cluster:/home/core/cluster --name kubermesh-bootkube quay.io/coreos/bootkube:v0.1.2 /bootkube start --asset-dir=/home/core/cluster --etcd-server=http://127.0.0.1:2379'
+
+echo -n 'Waiting for anycast address to be available on kubermesh1'
+while ! ./ssh.sh -q 'docker exec ospf6 vtysh -c "show ipv6 ospf6 database intra-prefix" | grep 172.30.2. | grep -q fd65:7b9c:569:680:98eb:c508:eb8c:1b80'; do
+  sleep 1
+  echo -n .
+done
+echo
+
 
 echo 'Removing anycast address'
 ./ssh.sh -q 'sudo ip addr del fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev eth1'

@@ -1,0 +1,14 @@
+{
+  "id": "worker",
+  "name": "Worker Node",
+  "profile": "bootkube-worker",
+  "selector": {
+    "os": "installed"
+  },
+  "metadata": {
+    "password_hash": "PASSWORD_HASH",
+    "ssh_authorized_keys": [
+      "SSH_PUBLIC_KEY"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "coreos-install",
+  "name": "CoreOS Install",
+  "profile": "install-reboot",
+  "metadata": {
+    "coreos_channel": "stable",
+    "coreos_version": "1010.6.0",
+    "ignition_endpoint": "http://bootcfg.kubermesh:30085/ignition",
+    "baseurl": "http://bootcfg.kubermesh:30085/assets/coreos",
+    "kubeconfig": "http://bootcfg.kubermesh:30085/assets/kubernetes/kubeconfig",
+    "password_hash": "PASSWORD_HASH",
+    "ssh_authorized_keys": [
+      "SSH_PUBLIC_KEY"
+    ]
+  }
+}
