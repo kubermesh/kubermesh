@@ -3,6 +3,9 @@
 Anycast addresses:
 - apiserver: fd65:7b9c:569:680:98eb:c508:eb8c:1b80
 - etcd: fd65:7b9c:569:680:98eb:c508:ea6b:b0b2
+- docker hub mirror: fd65:7b9c:569:680:98e8:1762:7b6e:83f6
+- gcr.io mirror: fd65:7b9c:569:680:98e8:1762:7b6e:61d3
+- quay.io mirror: fd65:7b9c:569:680:98e8:1762:7abd:e0b7
 
 libvirt networking:
 - host <-> gateway: 172.30.0.1/30
@@ -13,6 +16,17 @@ libvirt networking:
 - flannel ipv4: 172.31.0.0/16
 - custom ipv4 allocation: 172.30.2.0/24
 - custom ipv6 allocation: 2001:db8::/71
+
+Installation networking:
+- ??::0/119
+- host: ::0/123
+- host vip: ::0/128
+- mesh interfaces: ::10/124
+- mesh interface 1: ::10/126
+- mesh interface 2: ::14/126
+- mesh interface 3: ::18/126
+- mesh interface 4: ::1c/126
+- pods: ::100/120
 
 
 ## Local dev prerequisites
