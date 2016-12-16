@@ -1,0 +1,19 @@
+sudo ip addr add 2001:db8:a009::1/120 dev enx00e111000509
+
+m@hotcpc17686:~/git/kubermesh/nucs$ ./run-isc
+
+m@hotcpc17686:~/git/tftp-ipxe$ docker run --net=host kubermesh/tftp-ipxe:1481566879
+
+m@hotcpc17686:~/git/kubermesh/nucs$ docker run -it --net=host -v ${PWD}/radvd.conf:/etc/radvd.conf kubermesh/radvd -d 5
+
+m@hotcpc17686:~/git/kubermesh/nucs$ docker run --rm --name bootcfg --publish 30085:8085 --volume ${PWD}/../cluster/auth/:/var/lib/bootcfg/assets/kubernetes --volume ${PWD}/bootcfg-config/groups:/var/lib/bootcfg/groups --volume ${PWD}/bootcfg-nfig/ignition:/var/lib/bootcfg/ignition --volume ${PWD}/bootcfg-config/profiles:/var/lib/bootcfg/profiles --volume /export/home/m/nucs-coreos-images/bootcfg-coreos:/var/lib/bootcfg/assets/coreos quay.io/coreos/bootcfg:v0.4.1 -address=0.0.0.0:8085 -log-level=debug
+
+
+m@hotcpc17686:~/git/kubermesh/nucs$ docker run --rm --name unbound --net=host -v ${PWD}/unbound:/etc/unbound:ro fridus/unbound
+
+
+
+
+
+
+m@hotcpc17686:/export/home/m/docker-registry$ docker run -it --rm -p 5000:5000 --name mirror-hub -v ${PWD}:/var/lib/registry registry:2 /var/lib/registry/config.yml

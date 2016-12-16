@@ -1,0 +1,6 @@
+{
+  "id": "bootkube-worker",
+  "name": "bootkube Ready Worker",
+  "cloud_id": "",
+  "ignition_id": "bootkube-worker.yaml"
+}

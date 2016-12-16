@@ -1,0 +1,16 @@
+{
+  "id": "install-reboot",
+  "name": "Install CoreOS and Reboot",
+  "boot": {
+    "kernel": "/assets/coreos/1248.1.0/coreos_production_pxe.vmlinuz",
+    "initrd": ["/assets/coreos/1248.1.0/coreos_production_pxe_image.cpio.gz"],
+    "cmdline": {
+      "coreos.autologin": "tty1",
+      "coreos.config.url": "http://bootcfg.kubermesh:30085/ignition?uuid=${uuid}&mac=${net0/mac:hexhyp}",
+      "coreos.first_boot": "1",
+      "initrd": "coreos_production_pxe_image.cpio.gz"
+    }
+  },
+  "cloud_id": "",
+  "ignition_id": "install-reboot.yaml"
+}

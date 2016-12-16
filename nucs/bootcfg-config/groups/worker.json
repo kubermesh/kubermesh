@@ -1,0 +1,14 @@
+{
+  "id": "worker",
+  "name": "Worker Node",
+  "profile": "bootkube-worker",
+  "selector": {
+    "os": "installed"
+  },
+  "metadata": {
+    "password_hash": "iGyYPV5k4DAzA",
+    "ssh_authorized_keys": [
+      "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAre1jUkTTv9iTZmjOxfUpTt3yQDWr2kIu/4kjAm6AFf446E29x7081wVRNSf+RSLHbVfRFpAyjr24ZNvRw88sAdaGg1VrzOWuuuZPtNJzEtpoeeFnarOZYWrFeYkyOYeXMM40Dy418tY2acjosuN4VfMmRn8QrWOBKI4pDLixkxf3lC2uQ9mdRet77LwGL3qJafF3NKlnzw8cNiGgnjtfR2hbZdhIKTwlxgqMMU8SGH8LLnz1HDswQG2GtWHg086EQf7C/MC3VQTTib5uBtE7nYCSvPEhD89PvB6V9aM/sjaJYGvudewq+Vba9yfjLw/gauknAulUpA8Zhoqw17+nGw== michael.bryant@hotcpc7654"
+    ]
+  }
+}

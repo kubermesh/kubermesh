@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eux pipefail
+
+#docker run --name dnsmasq --net=host --detach --cap-add NET_ADMIN --volume ${PWD}/dnsmasq.conf:/etc/dnsmasq.conf quay.io/coreos/dnsmasq --no-daemon
+
+# Nearly working
+#docker run -it --rm --name dnsmasq --net=host --cap-add NET_ADMIN --volume ${PWD}/dnsmasq.conf:/etc/dnsmasq.conf quay.io/coreos/dnsmasq --no-daemon
+
+
+docker run -it --rm --name dnsmasq --net=host --cap-add NET_ADMIN --volume ${PWD}/dnsmasq.conf:/etc/dnsmasq.conf kubermesh/dnsmasq-efi:26050fd4c87c50503d5bd573b2ec91703676e211 --no-daemon

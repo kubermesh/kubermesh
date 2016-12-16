@@ -1,0 +1,6 @@
+#!/bin/sh
+
+docker stop dnsmasq || true
+docker rm dnsmasq || true
+docker stop isc-dhcp || true
+docker rm isc-dhcp || true
