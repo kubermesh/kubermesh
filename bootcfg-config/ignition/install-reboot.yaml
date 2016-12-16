@@ -8,8 +8,9 @@ systemd:
         Requires=network-online.target
         After=network-online.target
         [Service]
-        Type=simple
+        Type=oneshot
         ExecStart=/opt/installer
+        ExecStopPost=/bin/systemctl --force reboot
         [Install]
         WantedBy=multi-user.target
 storage:
@@ -28,7 +29,7 @@ storage:
           mount /dev/${FIRST_DISK}9 /mnt/
           mkdir -p /mnt/etc/kubernetes/
           cp kubeconfig /mnt/etc/kubernetes/kubeconfig
-          systemctl reboot
+          /bin/systemctl reboot
 
 {{ if index . "ssh_authorized_keys" }}
 passwd:
