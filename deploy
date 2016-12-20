@@ -149,7 +149,7 @@ echo 'Setting ip-allocator config...'
 ./ssh.sh -q '/usr/bin/etcdctl set /kubermesh.github.io/ip-allocator/config/ipv6-base-network 2001:db8::/71 >/dev/null'
 
 echo 'Forcing initial anycast addresses up...'
-./ssh.sh -q 'sudo ip addr add fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev eth1'
+./ssh.sh -q 'sudo ip addr add fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev cluster'
 
 
 echo -n 'Waiting for dnsmasq container'
@@ -167,14 +167,14 @@ done
 echo
 
 echo -n 'Waiting for kubermesh1 to be available'
-while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev eth1 | grep 2001 | awk "{print \\$1}"` true'; do
+while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev cluster | grep 2001 | awk "{print \\$1}"` true'; do
   sleep 1
   echo -n .
 done
 echo
 
 echo -n 'Waiting for kubermesh1 kubelet'
-while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev eth1 | grep 2001 | awk "{print \\$1}"` rkt list | grep -q kube'; do
+while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev cluster | grep 2001 | awk "{print \\$1}"` rkt list | grep -q kube'; do
   sleep 1
   echo -n .
 done
@@ -193,7 +193,7 @@ echo
 
 
 echo 'Removing anycast address'
-./ssh.sh -q 'sudo ip addr del fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev eth1'
+./ssh.sh -q 'sudo ip addr del fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev cluster'
 
 echo
 echo "Bootstrap complete. Access your kubernetes cluster using:"
