@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: quagga
+  namespace: kubermesh
+spec:
+  template:
+    metadata:
+      labels:
+        name: quagga
+    spec:
+      hostNetwork: true
+      containers:
+        - resources:
+            requests:
+              cpu: 0.05
+          securityContext:
+            capabilities:
+              add:
+              - NET_ADMIN
+          image: hub.mirror.kubermesh:5000/kubermesh/quagga
+          name: zebra
+          command: [ "/usr/sbin/zebra", "-r" ]
+          volumeMounts:
+            - name: run
+              mountPath: /var/run/quagga
+        - resources:
+            requests:
+              cpu: 0.05
+          image: hub.mirror.kubermesh:5000/kubermesh/quagga
+          name: ospf6
+          command: [ "/usr/sbin/ospf6d" ]
+          volumeMounts:
+            - name: run
+              mountPath: /var/run/quagga
+      volumes:
+        - name: run
+          emptyDir:
+              medium: Memory
