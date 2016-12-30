@@ -12,7 +12,7 @@ spec:
       hostNetwork: true
       containers:
         - name: healthcheck
-          image: kubermesh/minimal-anycast-healthcheck
+          image: hub.mirror.kubermesh:5000/kubermesh/minimal-anycast-healthcheck
           resources:
             requests:
               cpu: 0.01

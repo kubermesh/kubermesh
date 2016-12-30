@@ -3,29 +3,33 @@ kind: DaemonSet
 metadata:
   name: kube-apiserver
   namespace: kube-system
-  labels:
-    k8s-app: kube-apiserver
-    version: v1.4.0_coreos.2
 spec:
+  replicas: 1
   template:
     metadata:
       labels:
         k8s-app: kube-apiserver
-        version: v1.4.0_coreos.2
     spec:
-      nodeSelector:
-        master: "true"
       hostNetwork: true
       containers:
       - name: checkpoint-installer
-        image: quay.io/coreos/pod-checkpointer:91d5a311eee40d579a8f0549c10eeed57979d6c4
+        image: quay.mirror.kubermesh:5001/coreos/pod-checkpointer:91d5a311eee40d579a8f0549c10eeed57979d6c4
+        imagePullPolicy: Always
         command:
         - /checkpoint-installer.sh
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 1m
+            memory: 1Mi
         volumeMounts:
         - mountPath: /etc/kubernetes/manifests
           name: etc-k8s-manifests
       - name: kube-apiserver
-        image: quay.io/coreos/hyperkube:v1.4.0_coreos.2
+        image: quay.mirror.kubermesh:5001/coreos/hyperkube:v1.5.1_coreos.0
+        imagePullPolicy: Always
         command:
         - /hyperkube
         - apiserver
@@ -36,7 +40,7 @@ spec:
         - --etcd-servers=http://[fd65:7b9c:569:680:98eb:c508:ea6b:b0b2]:2379
         - --allow-privileged=true
         - --service-cluster-ip-range=10.3.0.0/24
-        - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota
+        - --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,AlwaysPullImages,DefaultStorageClass,ResourceQuota
         - --tls-cert-file=/etc/kubernetes/secrets/apiserver.crt
         - --tls-private-key-file=/etc/kubernetes/secrets/apiserver.key
         - --service-account-key-file=/etc/kubernetes/secrets/service-account.pub
@@ -46,6 +50,10 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 1000Mi
         volumeMounts:
         - mountPath: /etc/ssl/certs
           name: ssl-certs-host

@@ -12,7 +12,7 @@ spec:
       hostNetwork: true
       containers:
       - name: flannel
-        image: quay.io/coreos/flannel:v0.6.1
+        image: quay.mirror.kubermesh:5001/coreos/flannel:v0.6.1
         resources:
           requests:
             cpu: 0.05
@@ -20,10 +20,8 @@ spec:
         env:
           - name: FLANNELD_ETCD_ENDPOINTS
             value: http://[fd65:7b9c:569:680:98eb:c508:ea6b:b0b2]:2379
-          - name: IP
-            value: fd65:7b9c:569:680:98eb:c508:eb8c:1b80
-          - name: PORT
-            value: "443"
+          - name: FLANNELD_IFACE
+            value: dummy0
         volumeMounts:
         - name: run-flannel
           mountPath: /run/flannel

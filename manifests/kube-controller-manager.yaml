@@ -3,19 +3,17 @@ kind: Deployment
 metadata:
   name: kube-controller-manager
   namespace: kube-system
-  labels:
-    k8s-app: kube-controller-manager
-    version: v1.4.0_coreos.2
 spec:
+  replicas: 1
   template:
     metadata:
       labels:
         k8s-app: kube-controller-manager
-        version: v1.4.0_coreos.2
     spec:
       containers:
       - name: kube-controller-manager
-        image: quay.io/coreos/hyperkube:v1.4.0_coreos.2
+        image: quay.mirror.kubermesh:5001/coreos/hyperkube:v1.5.1_coreos.0
+        imagePullPolicy: Always
         command:
         - ./hyperkube
         - controller-manager

@@ -3,26 +3,27 @@ kind: DaemonSet
 metadata:
   name: kube-proxy
   namespace: kube-system
-  labels:
-    k8s_app: kube-proxy
-    version: v1.4.0_coreos.2
 spec:
   template:
     metadata:
       labels:
-        k8s_app: kube-proxy
-        version: v1.4.0_coreos.2
+        k8s-app: kube-proxy
     spec:
       hostNetwork: true
       containers:
       - name: kube-proxy
-        image: quay.io/coreos/hyperkube:v1.3.0_coreos.0
+        image: quay.mirror.kubermesh:5001/coreos/hyperkube:v1.5.1_coreos.0
+        imagePullPolicy: Always
         command:
         - /hyperkube
         - proxy
         - --master=https://[fd65:7b9c:569:680:98eb:c508:eb8c:1b80]:443
         - --kubeconfig=/etc/kubernetes/kubeconfig
         - --proxy-mode=iptables
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
         securityContext:
           privileged: true
         volumeMounts:
