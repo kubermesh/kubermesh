@@ -3,15 +3,15 @@
 Anycast addresses:
 - apiserver: fd65:7b9c:569:680:98eb:c508:eb8c:1b80
 - etcd: fd65:7b9c:569:680:98eb:c508:ea6b:b0b2
-- docker hub mirror: fd65:7b9c:569:680:98e8:1762:7b6e:83f6
-- gcr.io mirror: fd65:7b9c:569:680:98e8:1762:7b6e:61d3
-- quay.io mirror: fd65:7b9c:569:680:98e8:1762:7abd:e0b7
+- docker hub mirror: [fd65:7b9c:569:680:98e8:1762:7b6e:83f6]:5000
+- gcr.io mirror: [fd65:7b9c:569:680:98e8:1762:7b6e:61d3]:5002
+- quay.io mirror: [fd65:7b9c:569:680:98e8:1762:7abd:e0b7]:5001
 
 libvirt networking:
 - host <-> gateway: 172.30.0.1/30
 - host <-> gateway: 2001:db8:a001::1/64
 - gateway <-> kubermesh1: 172.30.0.9/29
-- gateway <-> kubermesh1: 2001:db8:a002::1/64
+- gateway <-> kubermesh1: 2001:db8:a002::10/126
 - gateway docker: 172.30.1.1/24
 - flannel ipv4: 172.31.0.0/16
 - custom ipv4 allocation: 172.30.2.0/24
@@ -31,3 +31,18 @@ Installation networking:
 
 ## Local dev prerequisites
 `sudo apt-get install qemu-kvm libvirt-bin docker virtinst`
+
+
+## Hardware specific
+### NUCs
+* Disable legacy network boot in the bios, so it will use EFI boot over ipv6
+  * Enter the BIOS
+  * Select Advanced under `Boot Order`
+  * Under `Legacy Boot Priority` disable `Legacy Boot`
+  * Under `Boot Configuration` select `Boot Network Devices Last`
+  * Under `Boot Configuration` select `Unlimited Boot to Network Attempts`
+  * Under `Boot Configuration` check `Network Boot` is set to `UEFI PXE & iSCSI`
+  * F10
+### USB Devices for the gateway bootstrapping physical hardware
+* Plug USB3 ones into a USB2 port, so qemu can use it without Speed Mismatch errors
+* Might need to add `/run/udev/data/** r,` to `/etc/apparmor.d/abstractions/libvirt-qemu` until qemu fixes that bug
