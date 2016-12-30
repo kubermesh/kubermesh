@@ -1,19 +1,28 @@
 #!/bin/bash -e
 
 usage() {
-        echo "Usage: $0 %number_of_kubermesh_nodes%"
+        echo "Usage:"
+        echo "    $0 libvirt %number_of_kubermesh_nodes%"
+        echo "    $0 usb"
 }
 
-if [ "$1" == "" ]; then
-        usage
-        exit 1
+if [ "$1" == "libvirt" ]; then
+  MODE=libvirt
+  if ! [[ $2 =~ ^[0-9]+$ ]]; then
+    echo "'$2' is not a number"
+    usage
+    exit 1
+  fi
+  NUM_NODES=$2
+elif [ "$1" == "usb" ]; then
+  MODE=usb
+  NUM_NODES=0
+else
+  usage
+  exit 1
 fi
 
-if ! [[ $1 =~ ^[0-9]+$ ]]; then
-        echo "'$1' is not a number"
-        usage
-        exit 1
-fi
+
 
 LIBVIRT_PATH=`pwd`/libvirt
 ASSET_DIR=`pwd`/cluster
@@ -23,7 +32,7 @@ VM_CONFIGS=`pwd`/machines
 USER_DATA_TEMPLATE=${VM_CONFIGS}/gateway/user-data
 GATEWAY_IP=2001:db8:a001::2
 CHANNEL=alpha
-RELEASE=1151.0.0
+RELEASE=1262.0.0
 RAM=1024
 CPUs=1
 IMG_NAME="coreos_${CHANNEL}_${RELEASE}_qemu_image.img"
@@ -53,8 +62,9 @@ docker cp kubermesh-bootkube:cluster ${ASSET_DIR}
 docker rm kubermesh-bootkube
 
 echo "Copying manifests..."
-curl -s https://raw.githubusercontent.com/kubermesh/quagga/master/manifests/quagga-daemonset.yaml -o cluster/manifests/quagga-daemonset.yaml
 cp -r manifests/* cluster/manifests/
+rm cluster/manifests/kubelet.yaml
+rm cluster/manifests/kube-dns-rc.yaml
 
 echo "Generating bootcfg manifests..."
 rm -rf ${ASSET_DIR}/bootcfg-config
@@ -88,10 +98,16 @@ sed 's/^/      /' ${ASSET_DIR}/auth/kubeconfig >> $LIBVIRT_PATH/$HOSTNAME/openst
 sed -i "s#SSH_PUBLIC_KEY#${SSH_PUBLIC_KEY}#" $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
 sed -i 's#PASSWORD_HASH#iGyYPV5k4DAzA#' $LIBVIRT_PATH/$HOSTNAME/openstack/latest/user_data
 
+if [ $MODE == "libvirt" ]; then
+  NODE_NETWORK="--network network=kubermesh-gateway-1"
+elif [ $MODE == "usb" ]; then
+  NODE_NETWORK="--hostdev 00:1a.0"
+fi
+
 virt-install -q --connect qemu:///system \
              --import \
              --name ${HOSTNAME} \
-             --ram 512 \
+             --ram 1024 \
              --vcpus 1 \
              --os-type=linux \
              --os-variant=virtio26 \
@@ -99,13 +115,13 @@ virt-install -q --connect qemu:///system \
              --disk path=${LIBVIRT_PATH}/${HOSTNAME}.qcow2,format=qcow2,bus=virtio \
              --filesystem ${LIBVIRT_PATH}/${HOSTNAME}/,config-2,type=mount,mode=squash \
              --network network=kubermesh-internet \
-             --network network=kubermesh-gateway-1 \
+             $NODE_NETWORK \
              --vnc \
              --noautoconsole
 
 # Blank node configuration
 
-for SEQ in $(seq 1 $1); do
+for SEQ in $(seq 1 $NUM_NODES); do
         HOSTNAME="kubermesh$SEQ"
         echo "Configuring blank node ${HOSTNAME}..."
 
@@ -141,12 +157,18 @@ echo "Gateway available at: $GATEWAY_IP (or use ./ssh.sh)"
 echo "Copying bootcfg config to gateway..."
 scp -q -o stricthostkeychecking=no -r ${ASSET_DIR}/bootcfg-config core@[${GATEWAY_IP}]:/home/core/
 
+echo -n 'Waiting for etcd'
+while ! ./ssh.sh -q '/usr/bin/etcdctl ls' >/dev/null 2>/dev/null; do
+  sleep 1
+  echo -n .
+done
+echo
 echo 'Setting flannel network config...'
-./ssh.sh -q "/usr/bin/etcdctl set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }' >/dev/null"
+./ssh.sh -q "/usr/bin/etcdctl --timeout 5s set /coreos.com/network/config '{ \"Network\": \"172.31.0.0/16\", \"Backend\": {\"Type\": \"alloc\"} }' >/dev/null"
 
 echo 'Setting ip-allocator config...'
-./ssh.sh -q '/usr/bin/etcdctl set /kubermesh.github.io/ip-allocator/config/ipv4-base-network 172.30.2.0/24 >/dev/null'
-./ssh.sh -q '/usr/bin/etcdctl set /kubermesh.github.io/ip-allocator/config/ipv6-base-network 2001:db8::/71 >/dev/null'
+./ssh.sh -q '/usr/bin/etcdctl --timeout 5s set /kubermesh.github.io/ip-allocator/config/ipv4-base-network 172.30.2.0/24 >/dev/null'
+./ssh.sh -q '/usr/bin/etcdctl --timeout 5s set /kubermesh.github.io/ip-allocator/config/ipv6-base-network 2001:db8::/71 >/dev/null'
 
 echo 'Forcing initial anycast addresses up...'
 ./ssh.sh -q 'sudo ip addr add fd65:7b9c:569:680:98eb:c508:eb8c:1b80 dev cluster'
@@ -167,14 +189,14 @@ done
 echo
 
 echo -n 'Waiting for kubermesh1 to be available'
-while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev cluster | grep 2001 | awk "{print \\$1}"` true'; do
+while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev cluster | grep 2001 | grep REACHABLE | awk "{print \\$1}"` true'; do
   sleep 1
   echo -n .
 done
 echo
 
 echo -n 'Waiting for kubermesh1 kubelet'
-while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev cluster | grep 2001 | awk "{print \\$1}"` rkt list | grep -q kube'; do
+while ! ./ssh.sh -q 'ssh -q -o UserKnownHostsFile=/dev/null -o stricthostkeychecking=no `ip neigh show dev cluster | grep 2001 | grep REACHABLE | awk "{print \\$1}"` rkt list | grep -q kube'; do
   sleep 1
   echo -n .
 done
@@ -198,4 +220,5 @@ echo 'Removing anycast address'
 echo
 echo "Bootstrap complete. Access your kubernetes cluster using:"
 echo "kubectl --kubeconfig=${PWD}/cluster/auth/kubeconfig get nodes"
+echo "(Alternatively, ./kubectl has been provided for your convenience)"
 echo

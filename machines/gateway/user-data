@@ -7,25 +7,58 @@ ssh_authorized_keys:
 hostname: kubermesh-gateway
 coreos:
   units:
-    - name: 00-eth1.link
+    - name: insmod-usb.service
+      command: start
+      enable: true
+      content: |
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/docker run --privileged kubermesh/hack-usb-module
+        [Install]
+        WantedBy=multi-user.target
+    - name: 01-eth1.link
       content: |
         [Match]
         OriginalName=eth1
 
         [Link]
         Name=cluster
-    - name: retrigger-udevadm.service
+        # To workaround ipxe bug with NUCs
+        AutoNegotiation=false
+        BitsPerSecond=102400
+        Duplex=full
+    - name: 00-usb.link
+      content: |
+        [Match]
+        Driver=r8152
+
+        [Link]
+        Name=cluster
+        # To workaround ipxe bug with NUCs
+        AutoNegotiation=false
+        BitsPerSecond=102400
+        Duplex=full
+    - name: reboot-to-fix-network.service
       command: start
       content: |
+        [Unit]
+        After=insmod-usb.service
         [Service]
-        ExecStart=/usr/bin/ip link set dev eth1 down
-        ExecStart=/usr/bin/udevadm control --reload
-        ExecStart=/usr/bin/udevadm trigger --subsystem-match=net --action=add --verbose
-        ExecStart=/usr/bin/udevadm settle
-        ExecStart=/usr/bin/ip link set dev cluster up
-        ExecStart=/usr/bin/systemctl restart systemd-networkd
+        ExecStart=/bin/bash -c "sleep 10; ifconfig cluster || reboot"
         Type=oneshot
       runtime: true
+    #  command: start
+    #  content: |
+    #    [Service]
+    #    ExecStart=-/usr/bin/ip link set dev eth1 down
+    #    ExecStart=-/usr/bin/ip link set dev ens7u1u2 down
+    #    ExecStart=/usr/bin/udevadm control --reload
+    #    ExecStart=/usr/bin/udevadm trigger --subsystem-match=net --action=add --verbose
+    #    ExecStart=/usr/bin/udevadm settle
+    #    ExecStart=/usr/bin/ip link set dev cluster up
+    #    ExecStart=/usr/bin/systemctl restart systemd-networkd
+    #    Type=oneshot
+    #  runtime: true
     - name: eth0.network
       content: |
         [Match]
@@ -43,8 +76,15 @@ coreos:
 
         [Network]
         Address=172.30.0.9/29
+        # etcd
         Address=fd65:7b9c:569:680:98eb:c508:ea6b:b0b2/128
-        Address=2001:db8:a002::1/64
+        # hub mirror
+        Address=fd65:7b9c:569:680:98e8:1762:7b6e:83f6/128
+        # gcr mirror
+        Address=fd65:7b9c:569:680:98e8:1762:7b6e:61d3/128
+        # quay mirror
+        Address=fd65:7b9c:569:680:98e8:1762:7abd:e0b7/128
+        Address=2001:db8:a002::10/64
         IPForward=yes
     - name: iptables-restore.service
       command: start
@@ -70,21 +110,21 @@ coreos:
         Restart=always
         ExecStartPre=-/usr/bin/docker stop bootcfg
         ExecStartPre=-/usr/bin/docker rm -f bootcfg
-        ExecStartPre=/usr/bin/docker run --rm --volume /home/core/bootcfg-coreos/1010.6.0/:/target kubermesh/coreos-images:1010.6.0 cp -r /assets/. /target/
+        ExecStartPre=/usr/bin/docker run --rm --volume /home/core/bootcfg-coreos/1262.0.0/:/target kubermesh/coreos-images:1262.0.0 cp -r /assets/. /target/
         ExecStart=/usr/bin/docker run \
           --name bootcfg \
-          --publish 30085:8085 \
+          --net=host \
           --volume /etc/kubernetes:/var/lib/bootcfg/assets/kubernetes \
           --volume /home/core/bootcfg-config/groups:/var/lib/bootcfg/groups \
           --volume /home/core/bootcfg-config/ignition:/var/lib/bootcfg/ignition \
           --volume /home/core/bootcfg-config/profiles:/var/lib/bootcfg/profiles \
           --volume /home/core/bootcfg-coreos:/var/lib/bootcfg/assets/coreos \
           quay.io/coreos/bootcfg:v0.4.1 \
-          -address=0.0.0.0:8085 \
+          -address=0.0.0.0:30085 \
           -log-level=debug
         ExecStop=/usr/bin/docker stop -t 2 bootcfg
         ExecStopPost=/usr/bin/docker rm -f bootcfg
-
+        TimeoutStartSec=600
         [Install]
         WantedBy=default.target
     - name: dnsmasq.service
@@ -99,21 +139,21 @@ coreos:
           --name dnsmasq \
           --net=host \
           --cap-add NET_ADMIN \
-          quay.io/coreos/dnsmasq \
+          kubermesh/dnsmasq-efi:26050fd4c87c50503d5bd573b2ec91703676e211 \
           --no-daemon \
           --enable-tftp \
           --tftp-root=/var/lib/tftpboot \
           --dhcp-userclass=set:ipxe,iPXE \
-          --dhcp-boot=tag:#ipxe,undionly.kpxe \
-          --dhcp-boot=tag:ipxe,http://bootcfg.kubermesh:30085/boot.ipxe \
+          --dhcp-option=tag:#ipxe,option6:bootfile-url,tftp://[2001:db8:a002::10]/ipxe.efi \
+          --dhcp-option=tag:ipxe,option6:bootfile-url,http://bootcfg.kubermesh:30085/boot.ipxe \
           --log-queries \
           --log-dhcp \
           --interface=cluster \
           --bind-dynamic \
-          --dhcp-range=172.30.0.10,172.30.0.14 \
-          --dhcp-range=::,constructor:cluster,ra-only \
+          --dhcp-range=2001:db8:a002::11,2001:db8:a002::13,126,2m \
           --enable-ra \
-          --address=/bootcfg.kubermesh/172.30.0.9
+          --ra-param=4 \
+          --address=/bootcfg.kubermesh/2001:db8:a002::10
         ExecStop=/usr/bin/docker stop -t 2 dnsmasq
         ExecStopPost=/usr/bin/docker rm -f dnsmasq
 
@@ -158,11 +198,70 @@ coreos:
 
         [Install]
         WantedBy=default.target
+    - name: registry-mirror-hub.service
+      enable: true
+      command: start
+      content: |
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker stop registry-mirror-hub
+        ExecStartPre=-/usr/bin/docker rm -f registry-mirror-hub
+        ExecStart=/usr/bin/docker run \
+          --env REGISTRY_HTTP_ADDR=:5000 \
+          --env REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
+          --name registry-mirror-hub \
+          --net=host \
+          -v /var/cache/registry-mirror-hub:/var/lib/registry \
+          registry:2
+        ExecStop=/usr/bin/docker stop -t 2 registry-mirror-hub
+        ExecStopPost=/usr/bin/docker rm -f registry-mirror-hub
+        [Install]
+        WantedBy=default.target
+    - name: registry-mirror-quay.service
+      enable: true
+      command: start
+      content: |
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker stop registry-mirror-quay
+        ExecStartPre=-/usr/bin/docker rm -f registry-mirror-quay
+        ExecStart=/usr/bin/docker run \
+          --env REGISTRY_HTTP_ADDR=:5001 \
+          --env REGISTRY_PROXY_REMOTEURL=https://quay.io \
+          --name registry-mirror-quay \
+          --net=host \
+          -v /var/cache/registry-mirror-quay:/var/lib/registry \
+          registry:2
+        ExecStop=/usr/bin/docker stop -t 2 registry-mirror-quay
+        ExecStopPost=/usr/bin/docker rm -f registry-mirror-quay
+        [Install]
+        WantedBy=default.target
+    - name: registry-mirror-gcr.service
+      enable: true
+      command: start
+      content: |
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker stop registry-mirror-gcr
+        ExecStartPre=-/usr/bin/docker rm -f registry-mirror-gcr
+        ExecStart=/usr/bin/docker run \
+          --env REGISTRY_HTTP_ADDR=:5002 \
+          --env REGISTRY_PROXY_REMOTEURL=https://gcr.io \
+          --name registry-mirror-gcr \
+          --net=host \
+          -v /var/cache/registry-mirror-gcr:/var/lib/registry \
+          registry:2
+        ExecStop=/usr/bin/docker stop -t 2 registry-mirror-gcr
+        ExecStopPost=/usr/bin/docker rm -f registry-mirror-gcr
+        [Install]
+        WantedBy=default.target
     # Disable updating
     - name: update-engine.service
       command: stop
+      enable: false
     - name: locksmithd.service
       command: stop
+      enable: false
   etcd2:
     advertise-client-urls: http://172.30.0.2:2379
     initial-advertise-peer-urls: http://172.30.0.2:2380

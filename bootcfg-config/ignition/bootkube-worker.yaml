@@ -1,47 +1,113 @@
 ---
+{{ if eq .request.query.board_name "NUC5i5RYB" -}}
+networkd:
+  units:
+    - name: 00-cluster0.link
+      contents: |
+        [Match]
+        Path=pci-0000:00:19.0
+        [Link]
+        Name=cluster0
+        # To workaround ipxe bug with NUCs
+        AutoNegotiation=false
+        BitsPerSecond=102400
+        Duplex=full
+    - name: 00-cluster1.link
+      contents: |
+        [Match]
+        Path=pci-0000:00:14.0-usb-0:1:1.0
+        [Link]
+        Name=cluster1
+        # To workaround ipxe bug with NUCs
+        AutoNegotiation=false
+        BitsPerSecond=102400
+        Duplex=full
+    - name: 00-cluster2.link
+      contents: |
+        [Match]
+        Path=pci-0000:00:14.0-usb-0:2:1.0
+        [Link]
+        Name=cluster2
+        # To workaround ipxe bug with NUCs
+        AutoNegotiation=false
+        BitsPerSecond=102400
+        Duplex=full
+    - name: 00-cluster3.link
+      contents: |
+        [Match]
+        Path=pci-0000:00:14.0-usb-0:3:1.0
+        [Link]
+        Name=cluster3
+        # To workaround ipxe bug with NUCs
+        AutoNegotiation=false
+        BitsPerSecond=102400
+        Duplex=full
+    - name: 00-cluster4.link
+      contents: |
+        [Match]
+        Path=pci-0000:00:14.0-usb-0:4:1.0
+        [Link]
+        Name=cluster4
+        # To workaround ipxe bug with NUCs
+        AutoNegotiation=false
+        BitsPerSecond=102400
+        Duplex=full
+{{ end -}}
 systemd:
   units:
+    - name: insmod-usb.service
+      enable: true
+      contents: |
+        [Service]
+        Type=simple
+        Restart=on-failure
+        RestartSec=10s
+        ExecStartPre=/usr/bin/docker run --privileged hub.mirror.kubermesh:5000/kubermesh/hack-usb-module
+        ExecStart=/bin/sleep infinity
+        [Install]
+        WantedBy=multi-user.target
     - name: docker.service
       enable: true
       dropins:
-        - name: 40-no-net.conf
+        - name: 40-docker-opts.conf
           contents: |
             [Service]
-            Environment="DOCKER_OPTS=--bridge=none --iptables=false --ip-masq=false"
+            Environment="DOCKER_OPTS=--bridge=none --iptables=false --ip-masq=false --insecure-registry hub.mirror.kubermesh:5000 --insecure-registry quay.mirror.kubermesh:5001 --insecure-registry gcr.mirror.kubermesh:5002"
     - name: ip-allocator.service
       enable: true
       contents: |
         [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        ExecStart=/usr/bin/docker run \
+        Type=simple
+        Restart=on-failure
+        RestartSec=10s
+        ExecStartPre=/usr/bin/docker run \
           --net=host \
           --volume=/etc/systemd/network:/target/units \
           --volume=/etc/ip-allocator-opts:/target/opts \
-          kubermesh/ip-allocator:latest %m
-        ExecStart=/usr/bin/systemctl restart systemd-networkd
+          hub.mirror.kubermesh:5000/kubermesh/ip-allocator:0.0.1 %m
+        ExecStartPre=/usr/bin/systemctl restart systemd-networkd
+        ExecStart=/bin/sleep infinity
+        [Install]
+        WantedBy=multi-user.target
     - name: kubelet.path
       enable: true
       contents: |
         [Unit]
-        Description=Watch for kubeconfig
+        Description=Watch for kubeconfig & ip-allocator
         [Path]
+        PathExists=/etc/ip-allocator-opts/ip-allocator-kubelet-opts.env
         PathExists=/etc/kubernetes/kubeconfig
         [Install]
         WantedBy=multi-user.target
     - name: kubelet.service
       enable: true
       contents: |
-        [Unit]
-        After=ip-allocator.service
-        Requires=ip-allocator.service
-
         [Service]
         EnvironmentFile=-/etc/environment
         EnvironmentFile=/etc/ip-allocator-opts/ip-allocator-kubelet-opts.env
-        Environment=KUBELET_ACI=quay.io/coreos/hyperkube
-        Environment=KUBELET_VERSION=v1.4.0_coreos.2
-        Environment="RKT_OPTS=--volume=resolv,kind=host,source=/etc/resolv.conf --mount volume=resolv,target=/etc/resolv.conf"
+        Environment=KUBELET_IMAGE_URL=docker://quay.mirror.kubermesh:5001/coreos/hyperkube
+        Environment=KUBELET_IMAGE_TAG=v1.4.0_coreos.2
+        Environment="RKT_RUN_ARGS=--insecure-options=image,http --volume=resolv,kind=host,source=/etc/resolv.conf --mount volume=resolv,target=/etc/resolv.conf"
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /srv/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/checkpoint-secrets
@@ -60,6 +126,7 @@ systemd:
           --cluster_domain=cluster.local \
           --network-plugin=cni \
           --network-plugin-dir=/etc/kubernetes/cni/net.d \
+          --pod-infra-container-image=gcr.mirror.kubermesh:5002/google_containers/pause-amd64:3.0 \
           '
         Restart=always
         RestartSec=5
@@ -84,6 +151,18 @@ storage:
       contents:
         inline: |
           {{ .request.query.uuid }}
+    - path: /etc/hosts
+      filesystem: rootfs
+      mode: 0644
+      contents:
+        inline: |
+          127.0.0.1                             localhost
+          ::1                                   localhost
+          fd65:7b9c:569:680:98eb:c508:eb8c:1b80 apiserver.kubermesh
+          fd65:7b9c:569:680:98eb:c508:ea6b:b0b2 etcd.kubermesh
+          fd65:7b9c:569:680:98e8:1762:7b6e:83f6 hub.mirror.kubermesh
+          fd65:7b9c:569:680:98e8:1762:7b6e:61d3 gcr.mirror.kubermesh
+          fd65:7b9c:569:680:98e8:1762:7abd:e0b7 quay.mirror.kubermesh
     - path: /etc/kubernetes/empty
       filesystem: rootfs
       mode: 0644

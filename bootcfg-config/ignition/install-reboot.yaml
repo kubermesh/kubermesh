@@ -21,7 +21,7 @@ storage:
       contents:
         inline: |
           #!/bin/bash -ex
-          curl -f "{{.ignition_endpoint}}?{{.request.raw_query}}&os=installed" -o ignition.json
+          curl -f "{{.ignition_endpoint}}?{{.request.raw_query}}&os=installed&board_name=`cat /sys/devices/virtual/dmi/id/board_name`" -o ignition.json
           curl -f "{{.kubeconfig}}" -o kubeconfig
           FIRST_DISK=`lsblk --output NAME -e 1,7 --nodeps --noheadings | sort | head -n 1`
           coreos-install -d /dev/${FIRST_DISK} -C {{.coreos_channel}} -V {{.coreos_version}} -i ignition.json {{if index . "baseurl"}}-b {{.baseurl}}{{end}}
