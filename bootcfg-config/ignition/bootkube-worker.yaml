@@ -106,7 +106,7 @@ systemd:
         EnvironmentFile=-/etc/environment
         EnvironmentFile=/etc/ip-allocator-opts/ip-allocator-kubelet-opts.env
         Environment=KUBELET_IMAGE_URL=docker://quay.mirror.kubermesh:5001/coreos/hyperkube
-        Environment=KUBELET_IMAGE_TAG=v1.4.0_coreos.2
+        Environment=KUBELET_IMAGE_TAG=v1.5.1_coreos.0
         Environment="RKT_RUN_ARGS=--insecure-options=image,http --volume=resolv,kind=host,source=/etc/resolv.conf --mount volume=resolv,target=/etc/resolv.conf"
         ExecStartPre=/bin/mkdir -p /etc/kubernetes/manifests
         ExecStartPre=/bin/mkdir -p /srv/kubernetes/manifests
