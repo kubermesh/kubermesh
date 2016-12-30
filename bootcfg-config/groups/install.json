@@ -4,7 +4,7 @@
   "profile": "install-reboot",
   "metadata": {
     "coreos_channel": "stable",
-    "coreos_version": "1010.6.0",
+    "coreos_version": "1262.0.0",
     "ignition_endpoint": "http://bootcfg.kubermesh:30085/ignition",
     "baseurl": "http://bootcfg.kubermesh:30085/assets/coreos",
     "kubeconfig": "http://bootcfg.kubermesh:30085/assets/kubernetes/kubeconfig",
