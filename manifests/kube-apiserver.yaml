@@ -45,6 +45,7 @@ spec:
         - --tls-private-key-file=/etc/kubernetes/secrets/apiserver.key
         - --service-account-key-file=/etc/kubernetes/secrets/service-account.pub
         - --client-ca-file=/etc/kubernetes/secrets/ca.crt
+        - --kubelet-preferred-address-types=InternalIP
         env:
           - name: MY_POD_IP
             valueFrom:
