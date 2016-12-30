@@ -1,0 +1,59 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bootcfg
+  namespace: kubermesh
+  annotations:
+    pod.beta.kubernetes.io/init-containers: '[
+      {
+        "name": "copy-assets",
+        "image": "hub.mirror.kubermesh:5000/kubermesh/coreos-images:1262.0.0",
+        "command": ["cp", "-r", "/assets/.", "/target/"],
+        "volumeMounts": [
+          {
+            "name": "coreos-assets",
+            "mountPath": "/target"
+          }
+        ]
+      }
+    ]'
+spec:
+  template:
+    metadata:
+      labels:
+        app: bootcfg
+    spec:
+      containers:
+      - name: bootcfg
+        image: quay.mirror.kubermesh:5001/coreos/bootcfg:v0.4.1
+        args:
+        - -address=0.0.0.0:8085
+        - -log-level=debug
+        ports:
+        - containerPort: 8085
+        volumeMounts:
+        - mountPath: /var/lib/bootcfg/assets/coreos
+          name: coreos-assets
+        - mountPath: /var/lib/bootcfg/assets/kubernetes
+          name: kubernetes-config
+        - mountPath: /var/lib/bootcfg/groups
+          name: bootcfg-groups
+        - mountPath: /var/lib/bootcfg/ignition
+          name: bootcfg-ignition
+        - mountPath: /var/lib/bootcfg/profiles
+          name: bootcfg-profiles
+      volumes:
+      - name: coreos-assets
+        emptyDir: {}
+      - name: bootcfg-groups
+        configMap:
+          name: bootcfg-groups
+      - name: bootcfg-ignition
+        configMap:
+          name: bootcfg-ignition
+      - name: bootcfg-profiles
+        configMap:
+          name: bootcfg-profiles
+      - name: kubernetes-config
+        hostPath:
+          path: /etc/kubernetes

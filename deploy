@@ -72,9 +72,9 @@ cp -r ${BOOTCFG_CONFIG_DIR} ${ASSET_DIR}/bootcfg-config
 sed -i 's#PASSWORD_HASH#iGyYPV5k4DAzA#' ${ASSET_DIR}/bootcfg-config/groups/*
 SSH_PUBLIC_KEY=`cat ~/.ssh/id_rsa.pub`
 sed -i "s#SSH_PUBLIC_KEY#${SSH_PUBLIC_KEY}#" ${ASSET_DIR}/bootcfg-config/groups/*
-kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/groups bootcfg-groups >cluster/manifests/bootcfg-groups.yaml
-kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/ignition bootcfg-ignition >cluster/manifests/bootcfg-ignition.yaml
-kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/profiles bootcfg-profiles >cluster/manifests/bootcfg-profiles.yaml
+kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/groups bootcfg-groups | sed '/^metadata:/a\ \ namespace: kubermesh' >cluster/manifests/bootcfg-groups.yaml
+kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/ignition bootcfg-ignition | sed '/^metadata:/a\ \ namespace: kubermesh' >cluster/manifests/bootcfg-ignition.yaml
+kubectl create configmap --dry-run --namespace kubermesh --output yaml --from-file ${ASSET_DIR}/bootcfg-config/profiles bootcfg-profiles | sed '/^metadata:/a\ \ namespace: kubermesh' >cluster/manifests/bootcfg-profiles.yaml
 
 if [ ! -f $LIBVIRT_PATH/$IMG_NAME ]; then
         wget https://${CHANNEL}.release.core-os.net/amd64-usr/${RELEASE}/coreos_production_qemu_image.img.bz2 -O - | bzcat > $LIBVIRT_PATH/$IMG_NAME || (rm -f $LIBVIRT_PATH/$IMG_NAME && echo "Failed to download image" && exit 1)
