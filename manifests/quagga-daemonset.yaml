@@ -1,3 +1,4 @@
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
@@ -11,29 +12,77 @@ spec:
     spec:
       hostNetwork: true
       containers:
-        - resources:
-            requests:
-              cpu: 0.05
-          securityContext:
-            capabilities:
-              add:
-              - NET_ADMIN
-          image: hub.mirror.kubermesh:5000/kubermesh/quagga
-          name: zebra
-          command: [ "/usr/sbin/zebra", "-r" ]
-          volumeMounts:
-            - name: run
-              mountPath: /var/run/quagga
-        - resources:
-            requests:
-              cpu: 0.05
-          image: hub.mirror.kubermesh:5000/kubermesh/quagga
-          name: ospf6
-          command: [ "/usr/sbin/ospf6d" ]
-          volumeMounts:
-            - name: run
-              mountPath: /var/run/quagga
-      volumes:
+      - resources:
+          requests:
+            cpu: 0.05
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        image: hub.mirror.kubermesh:5000/kubermesh/quagga
+        name: zebra
+        command: [ "/usr/sbin/zebra", "-r" ]
+        volumeMounts:
+        - mountPath: /etc/quagga
+          name: quagga-config
+          readOnly: true
         - name: run
-          emptyDir:
-              medium: Memory
+          mountPath: /var/run/quagga
+      - resources:
+          requests:
+            cpu: 0.05
+        image: hub.mirror.kubermesh:5000/kubermesh/quagga
+        name: ospf6
+        command: [ "/usr/sbin/ospf6d" ]
+        volumeMounts:
+        - mountPath: /etc/quagga
+          name: quagga-config
+          readOnly: true
+        - mountPath: /var/run/quagga
+          name: run
+      volumes:
+      - name: quagga-config
+        configMap:
+          name: quagga-config
+      - name: run
+        emptyDir:
+            medium: Memory
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: kubermesh
+  name: quagga-config
+data:
+  ospf6d.conf: |
+    log stdout informational
+
+    interface cluster0
+      ipv6 ospf6 network point-to-point
+    !
+    interface cluster1
+      ipv6 ospf6 network point-to-point
+    !
+    interface cluster2
+      ipv6 ospf6 network point-to-point
+    !
+    interface cluster3
+      ipv6 ospf6 network point-to-point
+    !
+    interface cluster4
+      ipv6 ospf6 network point-to-point
+    !
+    interface dummy0
+      ipv6 ospf6 passive
+    !
+
+    router ospf6
+      interface cluster0 area 0.0.0.0
+      interface cluster1 area 0.0.0.0
+      interface cluster2 area 0.0.0.0
+      interface cluster3 area 0.0.0.0
+      interface cluster4 area 0.0.0.0
+      interface dummy0 area 0.0.0.0
+    !
+  zebra.conf: |
+    log stdout informational

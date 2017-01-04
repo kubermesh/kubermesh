@@ -171,6 +171,7 @@ coreos:
           --name zebra \
           --net=host \
           --cap-add NET_ADMIN \
+          -v /etc/quagga:/etc/quagga:ro \
           -v /var/run/quagga:/var/run/quagga \
           kubermesh/quagga \
           /usr/sbin/zebra -r
@@ -190,6 +191,7 @@ coreos:
         ExecStart=/usr/bin/docker run \
           --name ospf6 \
           --net=host \
+          -v /etc/quagga:/etc/quagga:ro \
           -v /var/run/quagga:/var/run/quagga \
           kubermesh/quagga \
           /usr/sbin/ospf6d
@@ -269,6 +271,24 @@ coreos:
     listen-peer-urls: http://0.0.0.0:2380
     initial-cluster: "%m=http://172.30.0.2:2380"
 write_files:
+  - path: /etc/quagga/ospf6d.conf
+    permissions: 0644
+    owner: root:root
+    content: |
+      log stdout informational
+
+      interface cluster
+        ipv6 ospf6 network point-to-point
+      !
+
+      router ospf6
+        interface cluster area 0.0.0.0
+      !
+  - path: /etc/quagga/zebra.conf
+    permissions: 0644
+    owner: root:root
+    content: |
+      log stdout informational
   - path: /var/lib/iptables/rules-save
     permissions: 0644
     owner: root:root
