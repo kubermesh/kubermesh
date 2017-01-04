@@ -1,6 +1,13 @@
 ---
 systemd:
   units:
+    - name: docker.service
+      enable: true
+      dropins:
+        - name: 40-docker-opts.conf
+          contents: |
+            [Service]
+            Environment="DOCKER_OPTS=--insecure-registry hub.mirror.kubermesh:5000 --insecure-registry quay.mirror.kubermesh:5001 --insecure-registry gcr.mirror.kubermesh:5002"
     - name: installer.service
       enable: true
       contents: |
@@ -10,6 +17,8 @@ systemd:
         [Service]
         Type=oneshot
         ExecStart=/opt/installer
+        # Signal error state
+        ExecStopPost=-/usr/bin/docker run --rm --device /dev/bus/usb/ hub.mirror.kubermesh:5000/mikebryant/alpine-blink1 blink1-tool --playpattern '1,#aaaa00,0,2,#cc0000,0,1'
         ExecStopPost=/bin/systemctl --force reboot
         [Install]
         WantedBy=multi-user.target
@@ -21,6 +30,8 @@ storage:
       contents:
         inline: |
           #!/bin/bash -ex
+          # Signal initial state
+          docker run --rm --device /dev/bus/usb/ hub.mirror.kubermesh:5000/mikebryant/alpine-blink1 blink1-tool --playpattern '1,#aaaa00,0,2,#aa7700,0,1' || true
           curl -f "{{.ignition_endpoint}}?{{.request.raw_query}}&os=installed&board_name=`cat /sys/devices/virtual/dmi/id/board_name`" -o ignition.json
           curl -f "{{.kubeconfig}}" -o kubeconfig
           FIRST_DISK=`lsblk --output NAME -e 1,7 --nodeps --noheadings | sort | head -n 1`
@@ -29,7 +40,21 @@ storage:
           mount /dev/${FIRST_DISK}9 /mnt/
           mkdir -p /mnt/etc/kubernetes/
           cp kubeconfig /mnt/etc/kubernetes/kubeconfig
+          docker run --rm --device /dev/bus/usb/ hub.mirror.kubermesh:5000/mikebryant/alpine-blink1 blink1-tool --playpattern '1,#aaaa00,0,2,#006666,0,1' || true
           /bin/systemctl reboot
+          /bin/sleep 10
+    - path: /etc/hosts
+      filesystem: root
+      mode: 0644
+      contents:
+        inline: |
+          127.0.0.1                             localhost
+          ::1                                   localhost
+          fd65:7b9c:569:680:98eb:c508:eb8c:1b80 apiserver.kubermesh
+          fd65:7b9c:569:680:98eb:c508:ea6b:b0b2 etcd.kubermesh
+          fd65:7b9c:569:680:98e8:1762:7b6e:83f6 hub.mirror.kubermesh
+          fd65:7b9c:569:680:98e8:1762:7b6e:61d3 gcr.mirror.kubermesh
+          fd65:7b9c:569:680:98e8:1762:7abd:e0b7 quay.mirror.kubermesh
 
 {{ if index . "ssh_authorized_keys" }}
 passwd:

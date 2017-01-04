@@ -80,6 +80,7 @@ systemd:
         Type=simple
         Restart=on-failure
         RestartSec=10s
+        ExecStartPre=-/usr/bin/docker run --rm --device /dev/bus/usb/ hub.mirror.kubermesh:5000/mikebryant/alpine-blink1 blink1-tool --playpattern '1,#0000aa,0,2,#aa7700,0,1'
         ExecStartPre=/usr/bin/docker run \
           --net=host \
           --volume=/etc/systemd/network:/target/units \
@@ -131,6 +132,18 @@ systemd:
         Restart=always
         RestartSec=5
 
+        [Install]
+        WantedBy=multi-user.target
+    - name: kubelet-light-notify.service
+      enable: true
+      contents: |
+        [Service]
+        Type=simple
+        Restart=on-failure
+        RestartSec=10s
+        ExecStartPre=/usr/bin/curl http://localhost:10255
+        ExecStartPre=-/usr/bin/docker run --rm --device /dev/bus/usb/ hub.mirror.kubermesh:5000/mikebryant/alpine-blink1 blink1-tool --playpattern '1,#0000aa,0,2,#006666,0,1'
+        ExecStart=/bin/sleep infinity
         [Install]
         WantedBy=multi-user.target
     # Disable updating
