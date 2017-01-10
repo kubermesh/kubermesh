@@ -75,6 +75,9 @@ data:
     interface dummy0
       ipv6 ospf6 passive
     !
+    interface v4overlay
+      ipv6 ospf6 passive
+    !
 
     router ospf6
       interface cluster0 area 0.0.0.0
@@ -83,6 +86,7 @@ data:
       interface cluster3 area 0.0.0.0
       interface cluster4 area 0.0.0.0
       interface dummy0 area 0.0.0.0
+      interface v4overlay area 0.0.0.0
     !
   zebra.conf: |
     log stdout informational

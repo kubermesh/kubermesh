@@ -85,7 +85,7 @@ systemd:
           --net=host \
           --volume=/etc/systemd/network:/target/units \
           --volume=/etc/ip-allocator-opts:/target/opts \
-          hub.mirror.kubermesh:5000/kubermesh/ip-allocator:0.0.1 %m
+          hub.mirror.kubermesh:5000/kubermesh/ip-allocator:0.0.8 %m
         ExecStartPre=/usr/bin/systemctl restart systemd-networkd
         ExecStart=/bin/sleep infinity
         [Install]

@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: minimal-v4-overlay
+  namespace: kubermesh
+spec:
+  template:
+    metadata:
+      labels:
+        app: minimal-v4-overlay
+    spec:
+      containers:
+      - name: create-network-config
+        image: hub.mirror.kubermesh:5000/kubermesh/minimal-v4-overlay:latest
+        command:
+        - /usr/local/bin/create-network-config
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/ip-allocator-opts
+          name: ip-allocator-opts
+          readOnly: true
+        - mountPath: /target
+          name: dynamic-network-units
+      - name: push-local-data
+        image: hub.mirror.kubermesh:5000/kubermesh/minimal-v4-overlay:latest
+        command:
+        - /usr/local/bin/push-local-data
+        volumeMounts:
+        - mountPath: /etc/ip-allocator-opts
+          name: ip-allocator-opts
+          readOnly: true
+      hostNetwork: true
+      hostPID: true
+      terminationGracePeriodSeconds: 1
+      volumes:
+      - name: ip-allocator-opts
+        hostPath:
+          path: /etc/ip-allocator-opts
+      - name: dynamic-network-units
+        hostPath:
+          path: /run/systemd/network

@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: dnsmasq
+  namespace: kubermesh
+spec:
+  template:
+    metadata:
+      labels:
+        app: dnsmasq
+    spec:
+      hostNetwork: true
+      containers:
+      - resources:
+          requests:
+            cpu: 0.15
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        image: hub.mirror.kubermesh:5000/kubermesh/dnsmasq-efi:26050fd4c87c50503d5bd573b2ec91703676e211
+        name: cluster0
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - >
+          source /etc/ip-allocator-opts/dnsmasq-opts.env &&
+          /usr/sbin/dnsmasq
+          --no-daemon
+          --enable-tftp
+          --tftp-root=/var/lib/tftpboot
+          --dhcp-userclass=set:ipxe,iPXE
+          --dhcp-option=tag:#ipxe,tag:cluster0,option6:bootfile-url,tftp://[${CLUSTER0_INTERFACE_IP}]/ipxe.efi
+          --dhcp-option=tag:#ipxe,tag:cluster1,option6:bootfile-url,tftp://[${CLUSTER1_INTERFACE_IP}]/ipxe.efi
+          --dhcp-option=tag:#ipxe,tag:cluster2,option6:bootfile-url,tftp://[${CLUSTER2_INTERFACE_IP}]/ipxe.efi
+          --dhcp-option=tag:#ipxe,tag:cluster3,option6:bootfile-url,tftp://[${CLUSTER3_INTERFACE_IP}]/ipxe.efi
+          --dhcp-option=tag:#ipxe,tag:cluster4,option6:bootfile-url,tftp://[${CLUSTER4_INTERFACE_IP}]/ipxe.efi
+          --dhcp-option=tag:ipxe,tag:cluster0,option6:bootfile-url,http://[${CLUSTER0_INTERFACE_IP}]:8085/boot.ipxe
+          --dhcp-option=tag:ipxe,tag:cluster1,option6:bootfile-url,http://[${CLUSTER1_INTERFACE_IP}]:8085/boot.ipxe
+          --dhcp-option=tag:ipxe,tag:cluster2,option6:bootfile-url,http://[${CLUSTER2_INTERFACE_IP}]:8085/boot.ipxe
+          --dhcp-option=tag:ipxe,tag:cluster3,option6:bootfile-url,http://[${CLUSTER3_INTERFACE_IP}]:8085/boot.ipxe
+          --dhcp-option=tag:ipxe,tag:cluster4,option6:bootfile-url,http://[${CLUSTER4_INTERFACE_IP}]:8085/boot.ipxe
+          --log-queries
+          --log-dhcp
+          --bind-dynamic
+          --dhcp-range=${CLUSTER1_RANGE_START},${CLUSTER1_RANGE_END},${CLUSTER1_RANGE_NETMASK},2m
+          --dhcp-range=${CLUSTER2_RANGE_START},${CLUSTER2_RANGE_END},${CLUSTER2_RANGE_NETMASK},2m
+          --dhcp-range=${CLUSTER3_RANGE_START},${CLUSTER3_RANGE_END},${CLUSTER3_RANGE_NETMASK},2m
+          --dhcp-range=${CLUSTER4_RANGE_START},${CLUSTER4_RANGE_END},${CLUSTER4_RANGE_NETMASK},2m
+          --address=/bootcfg.kubermesh/${VIP_IP}
+          --enable-ra
+          --ra-param=4
+        volumeMounts:
+        - mountPath: /etc/ip-allocator-opts
+          name: ip-allocator-config
+          readOnly: true
+      terminationGracePeriodSeconds: 2
+      volumes:
+      - name: ip-allocator-config
+        hostPath:
+          # directory location on host
+          path: /etc/ip-allocator-opts/

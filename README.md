@@ -21,7 +21,7 @@ Installation networking:
 - ??::0/119
 - host: ::0/123
 - host vip: ::0/128
-- mesh interfaces: ::10/124
+- mesh interfaces: ::10/123
 - mesh interface 1: ::10/126
 - mesh interface 2: ::14/126
 - mesh interface 3: ::18/126

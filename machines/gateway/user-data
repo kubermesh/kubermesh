@@ -120,7 +120,7 @@ coreos:
           --volume /home/core/bootcfg-config/profiles:/var/lib/bootcfg/profiles \
           --volume /home/core/bootcfg-coreos:/var/lib/bootcfg/assets/coreos \
           quay.io/coreos/bootcfg:v0.4.1 \
-          -address=0.0.0.0:30085 \
+          -address=0.0.0.0:8085 \
           -log-level=debug
         ExecStop=/usr/bin/docker stop -t 2 bootcfg
         ExecStopPost=/usr/bin/docker rm -f bootcfg
@@ -145,7 +145,7 @@ coreos:
           --tftp-root=/var/lib/tftpboot \
           --dhcp-userclass=set:ipxe,iPXE \
           --dhcp-option=tag:#ipxe,option6:bootfile-url,tftp://[2001:db8:a002::10]/ipxe.efi \
-          --dhcp-option=tag:ipxe,option6:bootfile-url,http://bootcfg.kubermesh:30085/boot.ipxe \
+          --dhcp-option=tag:ipxe,option6:bootfile-url,http://bootcfg.kubermesh:8085/boot.ipxe \
           --log-queries \
           --log-dhcp \
           --interface=cluster \
@@ -284,6 +284,8 @@ write_files:
       router ospf6
         interface cluster area 0.0.0.0
       !
+
+      redistribute connected
   - path: /etc/quagga/zebra.conf
     permissions: 0644
     owner: root:root
