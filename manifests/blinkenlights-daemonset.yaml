@@ -1,0 +1,57 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: blinkenlights
+  namespace: kubermesh
+spec:
+  template:
+    metadata:
+      labels:
+        name: blinkenlights
+    spec:
+      containers:
+      - name: command-generator
+        env:
+        - name: LIGHT_NAMESPACES
+          value: 'kube-system,kubermesh'
+        - name: LIGHT_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        image: hub.mirror.kubermesh:5000/kubermesh/kubernetes-blinkenlights:0.0.1
+        resources:
+          requests:
+            cpu: 0.05
+        volumeMounts:
+        - mountPath: /target
+          name: commandline-data
+      - name: blinker
+        image: hub.mirror.kubermesh:5000/mikebryant/alpine-blink1
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - >
+          while true; do
+            /bin/sh /input/command-line || sleep 5
+          done
+        resources:
+          requests:
+            cpu: 0.05
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /input
+          name: commandline-data
+          readOnly: true
+        - mountPath: /dev/bus/usb
+          name: usb-bus
+      terminationGracePeriodSeconds: 1
+      volumes:
+      - name: commandline-data
+        emptyDir:
+            medium: Memory
+      - name: usb-bus
+        hostPath:
+          path: /dev/bus/usb
