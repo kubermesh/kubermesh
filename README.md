@@ -1,5 +1,10 @@
 # kubermesh
 
+## Local dev prerequisites
+`sudo apt-get install qemu-kvm libvirt-bin docker virtinst`
+
+## Current address allocations
+
 Anycast addresses:
 - apiserver: fd65:7b9c:569:680:98eb:c508:eb8c:1b80
 - etcd: fd65:7b9c:569:680:98eb:c508:ea6b:b0b2
@@ -27,11 +32,6 @@ Installation networking:
 - mesh interface 3: ::18/126
 - mesh interface 4: ::1c/126
 - pods: ::100/120
-
-
-## Local dev prerequisites
-`sudo apt-get install qemu-kvm libvirt-bin docker virtinst`
-
 
 ## Hardware specific
 ### NUCs
