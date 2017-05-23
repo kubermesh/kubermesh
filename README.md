@@ -3,6 +3,21 @@
 ## Local dev prerequisites
 `sudo apt-get install qemu-kvm libvirt-bin docker virtinst`
 
+## Getting started
+
+`./deploy libvirt 4`
+
+This will set up 4 nodes using libvirt, and run the bootstrap process
+
+## Useful commands
+
+`virt-viewer kubermesh1` - to get a graphical console
+`virsh console kubermesh1` - to get a serial console
+
+## Cleaning up
+
+`./teardown`
+
 ## Current address allocations
 
 Anycast addresses:
