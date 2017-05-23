@@ -9,6 +9,8 @@
 
 This will set up 4 nodes using libvirt, and run the bootstrap process
 
+Usernames/Passwords are currently hardcoded to `core/core`
+
 ## Useful commands
 
 `virt-viewer kubermesh1` - to get a graphical console
