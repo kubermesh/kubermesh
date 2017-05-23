@@ -1,4 +1,32 @@
 ---
+{{ if eq .request.query.sys_vendor "QEMU" -}}
+networkd:
+  units:
+    - name: 00-cluster0.link
+      contents: |
+        [Match]
+        Path=virtio-pci-0000:00:03.0
+        [Link]
+        Name=cluster0
+    - name: 00-cluster1.link
+      contents: |
+        [Match]
+        Path=virtio-pci-0000:00:04.0
+        [Link]
+        Name=cluster1
+    - name: 00-cluster2.link
+      contents: |
+        [Match]
+        Path=virtio-pci-0000:00:05.0
+        [Link]
+        Name=cluster2
+    - name: 00-cluster3.link
+      contents: |
+        [Match]
+        Path=virtio-pci-0000:00:06.0
+        [Link]
+        Name=cluster3
+{{ end -}}
 {{ if eq .request.query.board_name "NUC5i5RYB" -}}
 networkd:
   units:
