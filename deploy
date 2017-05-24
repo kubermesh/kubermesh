@@ -112,7 +112,7 @@ virt-install -q --connect qemu:///system \
              --os-type=linux \
              --os-variant=virtio26 \
              --serial pty \
-             --disk path=${LIBVIRT_PATH}/${HOSTNAME}.qcow2,format=qcow2,bus=virtio \
+             --disk path=${LIBVIRT_PATH}/${HOSTNAME}.qcow2,format=qcow2,bus=scsi,discard=unmap \
              --filesystem ${LIBVIRT_PATH}/${HOSTNAME}/,config-2,type=mount,mode=squash \
              --network network=kubermesh-internet \
              $NODE_NETWORK \
@@ -136,7 +136,7 @@ for SEQ in $(seq 1 $NUM_NODES); do
                      --os-type=linux \
                      --os-variant=virtio26 \
                      --serial pty \
-                     --disk path=$LIBVIRT_PATH/$HOSTNAME.qcow2,format=qcow2,bus=virtio \
+                     --disk path=$LIBVIRT_PATH/$HOSTNAME.qcow2,format=qcow2,bus=scsi,discard=unmap \
                      `cat ${VM_CONFIGS}/${HOSTNAME}/virt-args` \
                      --vnc \
                      --boot hd,network \
