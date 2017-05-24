@@ -1,1 +1,1 @@
---network network=kubermesh4-null-1 --network network=kubermesh4-null-2 --network network=kubermesh-2-4 --network network=kubermesh-3-4
+--network network=kubermesh-2-4 --network network=kubermesh4-null-1 --network network=kubermesh4-null-2 --network network=kubermesh-3-4
