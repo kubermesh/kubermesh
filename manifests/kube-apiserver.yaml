@@ -55,6 +55,9 @@ spec:
           limits:
             cpu: 100m
             memory: 1000Mi
+          requests:
+            cpu: 100m
+            memory: 250Mi
         volumeMounts:
         - mountPath: /etc/ssl/certs
           name: ssl-certs-host
