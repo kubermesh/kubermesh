@@ -1,5 +1,17 @@
 # kubermesh
 
+## Goal
+
+1. Deploy to one machine. Say, boot off a USB hard drive.
+2. Plug other machines into the first one. Watch them boot and join the cluster.
+3. Keep going till you run out of machines.
+
+No need for a traditional network with switches.
+
+Easy replacement, just drop new machines in. And the same goes for adding capacity
+
+This repo is a prototype trying to achieve the above concepts. For more about the project, see [the blog post](http://ocadotechnology.com/blog/creating-a-distributed-data-centre-architecture-using-kubernetes-and-containers/)
+
 ## Local dev prerequisites
 `sudo apt-get install qemu-kvm libvirt-bin docker virtinst`
 
