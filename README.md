@@ -10,7 +10,7 @@ No need for a traditional network with switches.
 
 Easy replacement, just drop new machines in. And the same goes for adding capacity
 
-This repo is a prototype trying to achieve the above concepts. For more about the project, see [the blog post](http://ocadotechnology.com/blog/creating-a-distributed-data-centre-architecture-using-kubernetes-and-containers/)
+This repo is a prototype trying to achieve the above concepts. For more about the project, see [the blog post](https://medium.com/ocadotechnology/creating-a-distributed-data-centre-architecture-using-kubernetes-and-containers-8c7d2ff0d116)
 
 ## Local dev prerequisites
 `sudo apt-get install qemu-kvm libvirt-bin docker virtinst`
